@@ -39,6 +39,18 @@
   ],
   "sessions": [
     {
+      "sessionId": "sess_1791704415186_t9ionc",
+      "playerName": "Guest",
+      "device": "Android Mobile",
+      "browser": "Chrome",
+      "resolution": "361x698",
+      "isMobile": true,
+      "firstSeen": "2026-10-11T11:54:11.900Z",
+      "lastSeen": "2026-10-11T11:54:11.900Z",
+      "gamesPlayed": 1,
+      "highestScore": 0
+    },
+    {
       "sessionId": "sess_1791702143123_v53vzc",
       "playerName": "BATMAN",
       "device": "Android Mobile",
