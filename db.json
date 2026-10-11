@@ -31,6 +31,18 @@
   ],
   "sessions": [
     {
+      "sessionId": "sess_1791702234257_tianj0",
+      "playerName": "Guest",
+      "device": "Mac Desktop",
+      "browser": "Safari",
+      "resolution": "1324x786",
+      "isMobile": false,
+      "firstSeen": "2026-10-11T09:44:43.448Z",
+      "lastSeen": "2026-10-11T09:44:43.448Z",
+      "gamesPlayed": 1,
+      "highestScore": 4
+    },
+    {
       "sessionId": "test_sess_1",
       "playerName": "MobileTest",
       "device": "Android Mobile",
