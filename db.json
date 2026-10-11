@@ -1,0 +1,33 @@
+{
+  "scores": [
+    {
+      "id": "score-1",
+      "name": "AceFlapper",
+      "score": 42,
+      "medal": "gold",
+      "date": "2026-10-11T09:33:01.307Z"
+    },
+    {
+      "id": "score-2",
+      "name": "SkyDiver",
+      "score": 28,
+      "medal": "silver",
+      "date": "2026-10-11T09:33:01.308Z"
+    },
+    {
+      "id": "score-3",
+      "name": "I AM NOIB",
+      "score": 21,
+      "medal": "silver",
+      "date": "2026-10-11T09:33:01.308Z"
+    },
+    {
+      "id": "score-4",
+      "name": "PixelPilot",
+      "score": 15,
+      "medal": "bronze",
+      "date": "2026-10-11T09:33:01.308Z"
+    }
+  ],
+  "sessions": []
+}
