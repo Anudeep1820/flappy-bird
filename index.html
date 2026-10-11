@@ -15,6 +15,13 @@
     <!-- Game Canvas -->
     <canvas id="game-canvas" width="360" height="600"></canvas>
 
+    <!-- Top Navigation Bar (Positioned safely away from tap zone) -->
+    <div id="top-bar-overlay" class="top-bar-overlay">
+      <button id="leaderboard-btn-top" class="top-pill-btn" aria-label="Global Leaderboard">
+        🏆 RANKINGS
+      </button>
+    </div>
+
     <!-- UI Overlay: Start Screen -->
     <div id="start-overlay" class="ui-screen">
       <div class="game-logo">
@@ -22,11 +29,8 @@
         <span class="logo-bird">BIRD</span>
       </div>
       <div class="tap-instruction">
-        <span class="desktop-hint">[SPACE] or </span><span class="tap-hint">TAP TO FLAP</span>
+        <span class="desktop-hint">[SPACE] or </span><span class="tap-hint">TAP ANYWHERE TO FLAP</span>
       </div>
-      <button id="leaderboard-btn-start" class="arcade-btn sub-btn" style="margin-top: 18px; pointer-events: auto;">
-        🏆 RANKINGS
-      </button>
     </div>
 
     <!-- UI Overlay: In-Game Score HUD -->
@@ -50,18 +54,29 @@
         </div>
       </div>
 
-      <!-- Submit Score to Global Leaderboard -->
-      <div id="submit-score-section" class="submit-score-section">
-        <input type="text" id="player-name-input" maxlength="12" placeholder="YOUR NAME" class="name-input" autocomplete="off" autocorrect="off">
-        <button id="submit-score-btn" class="arcade-btn submit-btn">POST</button>
-      </div>
-      <div id="submit-status-msg" class="submit-status-msg"></div>
-
+      <!-- Action Buttons -->
       <div class="gameover-actions">
-        <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+        <button id="restart-btn" class="arcade-btn primary-action">PLAY AGAIN</button>
+        <button id="open-submit-modal-btn" class="arcade-btn sub-btn">✍️ POST SCORE</button>
         <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANKINGS</button>
       </div>
       <div class="restart-hint">Tap anywhere to restart</div>
+    </div>
+
+    <!-- UI Overlay: Name Submission Modal (Clean, separate from tap zone) -->
+    <div id="submit-modal" class="modal-overlay hidden">
+      <div class="submit-modal-content">
+        <div class="modal-header">
+          <span>✍️ POST TO LEADERBOARD</span>
+          <button id="submit-close-btn" class="close-x">&times;</button>
+        </div>
+        <p class="submit-modal-desc">Enter your name to appear on the global Hall of Fame:</p>
+        <div class="submit-input-group">
+          <input type="text" id="player-name-input" maxlength="12" placeholder="YOUR NAME" class="name-input" autocomplete="off" autocorrect="off">
+          <button id="submit-score-btn" class="arcade-btn submit-btn">SAVE</button>
+        </div>
+        <div id="submit-status-msg" class="submit-status-msg"></div>
+      </div>
     </div>
 
     <!-- UI Overlay: Global Leaderboard Modal -->
@@ -69,7 +84,10 @@
       <div class="leaderboard-content">
         <div class="leaderboard-header">
           <span class="leaderboard-title">🏆 HALL OF FAME</span>
-          <button id="leaderboard-close-btn" class="close-x">&times;</button>
+          <div class="leaderboard-header-right">
+            <span id="leaderboard-live-pill" class="live-pill">● LIVE</span>
+            <button id="leaderboard-close-btn" class="close-x">&times;</button>
+          </div>
         </div>
         <div class="leaderboard-scroll">
           <div id="leaderboard-list" class="leaderboard-list">

@@ -8,7 +8,7 @@ class LeaderboardClient {
     this.sessionId = this.getOrCreateSessionId();
     this.playerName = localStorage.getItem('flappy_player_name') || '';
     this.sessionGames = 0;
-    this.sessionHighestScore = 0;
+    this.sessionHighestScore = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
 
     this.initSession();
   }
@@ -22,14 +22,25 @@ class LeaderboardClient {
     return id;
   }
 
+  isMobileDevice() {
+    if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+      return navigator.userAgentData.mobile;
+    }
+    const ua = navigator.userAgent || '';
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+      return true;
+    }
+    return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 820;
+  }
+
   detectDevice() {
     const ua = navigator.userAgent || '';
-    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'Apple iOS';
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'iPhone / iOS';
     if (/Android/.test(ua)) return 'Android Mobile';
-    if (/Macintosh|Mac OS X/.test(ua)) return 'macOS Desktop';
+    if (/Macintosh|Mac OS X/.test(ua)) return 'Mac Desktop';
     if (/Windows NT/.test(ua)) return 'Windows PC';
     if (/Linux/.test(ua)) return 'Linux Desktop';
-    return 'Web Device';
+    return this.isMobileDevice() ? 'Mobile Device' : 'Desktop PC';
   }
 
   detectBrowser() {
@@ -48,14 +59,16 @@ class LeaderboardClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: this.sessionId,
-          playerName: this.playerName,
+          playerName: this.playerName || 'Guest',
           device: this.detectDevice(),
           browser: this.detectBrowser(),
-          resolution: `${window.innerWidth}x${window.innerHeight}`
+          resolution: `${window.innerWidth}x${window.innerHeight}`,
+          isMobile: this.isMobileDevice(),
+          highestScore: this.sessionHighestScore
         })
       });
     } catch {
-      // Offline / failsafe
+      // Offline failsafe
     }
   }
 
@@ -73,22 +86,23 @@ class LeaderboardClient {
           sessionId: this.sessionId,
           gamesPlayed: 1,
           highestScore: this.sessionHighestScore,
-          playerName: this.playerName
+          playerName: this.playerName || 'Guest',
+          device: this.detectDevice(),
+          isMobile: this.isMobileDevice()
         })
       });
     } catch {
-      // Offline / failsafe
+      // Offline failsafe
     }
   }
 
   async fetchScores() {
     try {
-      const res = await fetch('/api/scores');
+      const res = await fetch('/api/scores?t=' + Date.now());
       if (!res.ok) throw new Error('Network error');
       const data = await res.json();
       return data.scores || [];
     } catch {
-      // Fallback local highscore if server is unreachable
       const local = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
       return [
         { id: 'local-1', name: this.playerName || 'You (Local)', score: local, medal: 'gold', date: new Date().toISOString() }
@@ -115,6 +129,10 @@ class LeaderboardClient {
 
       if (!res.ok) throw new Error('Failed to submit');
       const data = await res.json();
+
+      // Also update session name
+      this.initSession();
+
       return data.entry;
     } catch {
       return null;

@@ -41,22 +41,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
   }
 
-  // 2. Fetch Admin Dashboard Data
+  // 2. Fetch Live Admin Dashboard Data
   if (action === 'data' && req.method === 'GET') {
     try {
       const scores = await getScores();
       const sessions = await getSessions();
 
-      // Compute analytics
       const totalPlayers = sessions.length;
       const totalGames = sessions.reduce((acc, s) => acc + (s.gamesPlayed || 1), 0);
       const highestScore = scores.length > 0 ? scores[0].score : 0;
 
-      const mobileCount = sessions.filter(s =>
-        (s.device || '').toLowerCase().includes('iphone') ||
-        (s.device || '').toLowerCase().includes('android') ||
-        (s.device || '').toLowerCase().includes('mobile')
-      ).length;
+      const mobileCount = sessions.filter(s => {
+        if (s.isMobile) return true;
+        const d = (s.device || '').toLowerCase();
+        return d.includes('iphone') || d.includes('android') || d.includes('mobile') || d.includes('ipad');
+      }).length;
+
       const mobilePercentage = totalPlayers > 0 ? Math.round((mobileCount / totalPlayers) * 100) : 0;
 
       return res.status(200).json({
@@ -67,9 +67,11 @@ export default async function handler(req, res) {
           mobilePercentage
         },
         sessions,
-        scores
+        scores,
+        timestamp: Date.now()
       });
-    } catch {
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
       return res.status(500).json({ error: 'Failed to retrieve dashboard analytics' });
     }
   }

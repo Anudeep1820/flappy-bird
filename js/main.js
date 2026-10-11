@@ -20,35 +20,40 @@ class Game {
     this.height = 600;
     this.groundHeight = 96;
 
-    // High DPI Canvas Scaling
     this.setupDPI();
 
     // DOM UI Elements
     this.startOverlay = document.getElementById('start-overlay');
     this.gameoverOverlay = document.getElementById('gameover-overlay');
+    this.topBarOverlay = document.getElementById('top-bar-overlay');
     this.hudScore = document.getElementById('hud-score');
     this.finalScoreEl = document.getElementById('final-score');
     this.highScoreEl = document.getElementById('high-score');
     this.medalIcon = document.getElementById('medal-icon');
     this.restartBtn = document.getElementById('restart-btn');
 
-    // Leaderboard UI Elements
-    this.leaderboardBtnStart = document.getElementById('leaderboard-btn-start');
+    // Leaderboard & Submit UI
+    this.leaderboardBtnTop = document.getElementById('leaderboard-btn-top');
     this.leaderboardBtnOver = document.getElementById('leaderboard-btn-over');
+    this.openSubmitModalBtn = document.getElementById('open-submit-modal-btn');
     this.leaderboardModal = document.getElementById('leaderboard-modal');
     this.leaderboardCloseBtn = document.getElementById('leaderboard-close-btn');
     this.leaderboardList = document.getElementById('leaderboard-list');
+
+    this.submitModal = document.getElementById('submit-modal');
+    this.submitCloseBtn = document.getElementById('submit-close-btn');
     this.playerNameInput = document.getElementById('player-name-input');
     this.submitScoreBtn = document.getElementById('submit-score-btn');
     this.submitStatusMsg = document.getElementById('submit-status-msg');
 
-    // Game States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'GAMEOVER'
+    // States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'GAMEOVER'
     this.state = 'IDLE';
     this.previousState = 'IDLE';
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
     this.gameOverTime = 0;
     this.lastSubmittedScoreId = null;
+    this.leaderboardPollTimer = null;
 
     // Entities
     this.bird = new Bird(this.width, this.height);
@@ -81,7 +86,7 @@ class Game {
   }
 
   initEvents() {
-    // 1. Keyboard Controls (Desktop / Laptop)
+    // 1. Keyboard Controls
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
         if (e.key === 'Enter' && e.target === this.playerNameInput) {
@@ -91,8 +96,9 @@ class Game {
         return;
       }
 
-      if (e.key === 'Escape' && this.state === 'PAUSED_LEADERBOARD') {
-        this.closeLeaderboard();
+      if (e.key === 'Escape') {
+        if (this.state === 'PAUSED_LEADERBOARD') this.closeLeaderboard();
+        if (this.state === 'PAUSED_SUBMIT') this.closeSubmitModal();
         return;
       }
 
@@ -105,20 +111,23 @@ class Game {
       }
     });
 
-    // 2. Touch / Pointer Controls
+    // 2. Touch / Pointer Controls across all screen zones
     const onActionPointer = (e) => {
-      if (this.state === 'PAUSED_DIAG' || this.state === 'PAUSED_LEADERBOARD') return;
-      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal')) return;
-      if (e.target.closest('#submit-score-section') || e.target.closest('#player-name-input')) return;
+      // Ignore clicks inside open modal overlays or buttons
+      if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT'].includes(this.state)) return;
+      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal') || e.target.closest('#submit-modal')) return;
+      if (e.target.closest('#top-bar-overlay')) return;
+      if (e.target.closest('.gameover-actions button')) return;
 
       if (this.state === 'GAMEOVER') {
         const timeSinceGameOver = performance.now() - this.gameOverTime;
-        if (timeSinceGameOver > 450) {
+        if (timeSinceGameOver > 400) {
           this.restartGame();
         }
         return;
       }
 
+      // In IDLE or PLAYING: Tap anywhere registers as flap!
       this.handleActionInput();
     };
 
@@ -135,9 +144,9 @@ class Game {
       });
     }
 
-    // 4. Leaderboard Open & Close Buttons
-    if (this.leaderboardBtnStart) {
-      this.leaderboardBtnStart.addEventListener('click', (e) => {
+    // 4. Top Rankings Button
+    if (this.leaderboardBtnTop) {
+      this.leaderboardBtnTop.addEventListener('click', (e) => {
         e.stopPropagation();
         this.openLeaderboard();
       });
@@ -155,7 +164,19 @@ class Game {
       });
     }
 
-    // 5. Score Submit Button
+    // 5. Submit Score Modal Triggers
+    if (this.openSubmitModalBtn) {
+      this.openSubmitModalBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openSubmitModal();
+      });
+    }
+    if (this.submitCloseBtn) {
+      this.submitCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeSubmitModal();
+      });
+    }
     if (this.submitScoreBtn) {
       this.submitScoreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -189,6 +210,7 @@ class Game {
   startGame() {
     this.state = 'PLAYING';
     if (this.startOverlay) this.startOverlay.classList.add('hidden');
+    if (this.topBarOverlay) this.topBarOverlay.style.display = 'none'; // Clean gameplay!
     if (this.hudScore) this.hudScore.textContent = '0';
     this.score = 0;
   }
@@ -203,6 +225,29 @@ class Game {
     this.lastTime = performance.now();
   }
 
+  openSubmitModal() {
+    this.previousState = this.state;
+    this.state = 'PAUSED_SUBMIT';
+
+    if (this.playerNameInput) {
+      this.playerNameInput.value = localStorage.getItem('flappy_player_name') || '';
+    }
+    if (this.submitStatusMsg) {
+      this.submitStatusMsg.textContent = '';
+    }
+
+    if (this.submitModal) {
+      this.submitModal.classList.remove('hidden');
+    }
+  }
+
+  closeSubmitModal() {
+    this.state = this.previousState;
+    if (this.submitModal) {
+      this.submitModal.classList.add('hidden');
+    }
+  }
+
   async openLeaderboard() {
     this.previousState = this.state;
     this.state = 'PAUSED_LEADERBOARD';
@@ -212,19 +257,30 @@ class Game {
     }
 
     if (this.leaderboardList) {
-      this.leaderboardList.innerHTML = `<div style="text-align: center; color: #88aacc; padding: 24px; font-size: 11px;">Loading top rankings...</div>`;
-      const scores = await leaderboardClient.fetchScores();
-      this.renderLeaderboardRows(scores);
+      this.leaderboardList.innerHTML = `<div style="text-align: center; color: #88aacc; padding: 24px; font-size: 11px;">Loading live rankings...</div>`;
+      await this.refreshLeaderboardData();
     }
+
+    // Auto-poll leaderboard every 5 seconds while modal is open
+    clearInterval(this.leaderboardPollTimer);
+    this.leaderboardPollTimer = setInterval(() => {
+      this.refreshLeaderboardData();
+    }, 5000);
   }
 
   closeLeaderboard() {
+    clearInterval(this.leaderboardPollTimer);
     this.state = this.previousState;
     this.lastTime = performance.now();
 
     if (this.leaderboardModal) {
       this.leaderboardModal.classList.add('hidden');
     }
+  }
+
+  async refreshLeaderboardData() {
+    const scores = await leaderboardClient.fetchScores();
+    this.renderLeaderboardRows(scores);
   }
 
   renderLeaderboardRows(scores) {
@@ -258,7 +314,7 @@ class Game {
     const medal = this.getMedalName(this.score);
 
     if (this.submitStatusMsg) {
-      this.submitStatusMsg.textContent = 'Saving...';
+      this.submitStatusMsg.textContent = 'Saving to live database...';
       this.submitStatusMsg.style.color = '#38bdf8';
     }
 
@@ -266,12 +322,13 @@ class Game {
     if (entry) {
       this.lastSubmittedScoreId = entry.id;
       if (this.submitStatusMsg) {
-        this.submitStatusMsg.textContent = 'Saved to Leaderboard!';
+        this.submitStatusMsg.textContent = 'Saved!';
         this.submitStatusMsg.style.color = '#4ade80';
       }
       setTimeout(() => {
+        this.closeSubmitModal();
         this.openLeaderboard();
-      }, 400);
+      }, 300);
     } else {
       if (this.submitStatusMsg) {
         this.submitStatusMsg.textContent = 'Failed to submit. Try again.';
@@ -287,10 +344,11 @@ class Game {
     sound.playHit();
     this.shakeFrames = 14;
 
-    // Log gameplay telemetry
+    if (this.topBarOverlay) this.topBarOverlay.style.display = 'block';
+
+    // Log gameplay telemetry immediately
     leaderboardClient.logGamePlayed(this.score);
 
-    // High Score tracking
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem('flappy_highscore', this.highScore.toString());
@@ -300,14 +358,6 @@ class Game {
     if (this.highScoreEl) this.highScoreEl.textContent = this.highScore;
 
     this.assignMedal(this.score);
-
-    // Pre-fill name and reset submission message
-    if (this.playerNameInput) {
-      this.playerNameInput.value = localStorage.getItem('flappy_player_name') || '';
-    }
-    if (this.submitStatusMsg) {
-      this.submitStatusMsg.textContent = '';
-    }
 
     if (this.gameoverOverlay) {
       setTimeout(() => {
@@ -341,6 +391,7 @@ class Game {
 
     if (this.gameoverOverlay) this.gameoverOverlay.classList.add('hidden');
     if (this.startOverlay) this.startOverlay.classList.remove('hidden');
+    if (this.topBarOverlay) this.topBarOverlay.style.display = 'block';
 
     this.state = 'IDLE';
   }
@@ -386,7 +437,7 @@ class Game {
   }
 
   update(dt) {
-    if (this.state === 'PAUSED_DIAG' || this.state === 'PAUSED_LEADERBOARD') return;
+    if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT'].includes(this.state)) return;
 
     const speedMult = Flags.superSpeed ? 2.5 : 1.0;
     const scrollDelta = 2.4 * speedMult;

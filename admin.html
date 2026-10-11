@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Flappy Bird - Admin Portal</title>
+  <title>Flappy Bird - Live Admin Portal</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Dedicated Admin Portal Styling */
     body.admin-body {
       background: #090c14;
       color: #e2e8f0;
@@ -37,7 +36,7 @@
 
     .admin-title {
       font-family: 'Press Start 2P', monospace;
-      font-size: 16px;
+      font-size: 15px;
       color: #38bdf8;
       display: flex;
       align-items: center;
@@ -45,14 +44,31 @@
       text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
     }
 
-    .admin-badge {
+    .live-status-pill {
       font-size: 11px;
-      background: rgba(34, 197, 94, 0.2);
+      background: rgba(34, 197, 94, 0.15);
       color: #4ade80;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 5px 10px;
+      border-radius: 20px;
       border: 1px solid #22c55e;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-weight: 600;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #22c55e;
+      animation: pulseAnim 1.2s infinite alternate;
+    }
+
+    @keyframes pulseAnim {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      100% { transform: scale(1.2); opacity: 1; }
     }
 
     /* Login Card */
@@ -69,7 +85,7 @@
 
     .admin-login-card h2 {
       font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
+      font-size: 13px;
       color: #38bdf8;
       margin-bottom: 12px;
     }
@@ -161,6 +177,7 @@
       flex-direction: column;
       gap: 8px;
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
     }
 
     .stat-header {
@@ -168,11 +185,12 @@
       justify-content: space-between;
       align-items: center;
       color: #94a3b8;
-      font-size: 13px;
+      font-size: 12px;
+      font-weight: 600;
     }
 
     .stat-value {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
       color: #f8fafc;
       font-family: 'Press Start 2P', monospace;
@@ -195,7 +213,7 @@
 
     .section-title {
       font-family: 'Press Start 2P', monospace;
-      font-size: 13px;
+      font-size: 12px;
       color: #38bdf8;
       margin-bottom: 16px;
       display: flex;
@@ -229,12 +247,23 @@
     }
 
     .badge-device {
-      background: #1e293b;
       border: 1px solid #334155;
       padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
-      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .badge-mobile {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: #22c55e;
+      color: #4ade80;
+    }
+
+    .badge-desktop {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #0284c7;
+      color: #38bdf8;
     }
 
     .delete-btn {
@@ -256,7 +285,7 @@
 
     .portal-nav-actions {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
     }
 
@@ -280,11 +309,14 @@
     <header class="admin-header">
       <div class="admin-title">
         <span>🎮 FLAPPY BIRD</span>
-        <span class="admin-badge">ADMIN PORTAL</span>
+        <span class="live-status-pill">
+          <span class="pulse-dot"></span>
+          <span id="live-indicator-text">LIVE SYNC (3s)</span>
+        </span>
       </div>
       <div class="portal-nav-actions">
         <a href="index.html" class="back-to-game"><i class="fa fa-arrow-left"></i> Back to Game</a>
-        <button id="logout-btn" class="admin-btn admin-btn-secondary" style="display: none; padding: 6px 14px; font-size: 12px;">Logout</button>
+        <button id="logout-btn" class="admin-btn admin-btn-secondary" style="display: none; padding: 6px 14px; font-size: 12px; width: auto;">Logout</button>
       </div>
     </header>
 
@@ -312,7 +344,7 @@
             <i class="fa fa-users text-sky-400"></i>
           </div>
           <div id="stat-players" class="stat-value">0</div>
-          <div class="stat-sub">Unique device sessions</div>
+          <div class="stat-sub">Live unique device sessions</div>
         </div>
 
         <div class="stat-card">
@@ -339,16 +371,23 @@
             <i class="fa fa-mobile-screen text-indigo-400"></i>
           </div>
           <div id="stat-mobile" class="stat-value">0%</div>
-          <div class="stat-sub">Smartphones &amp; Tablets</div>
+          <div class="stat-sub">Real-time smartphone traffic</div>
         </div>
       </div>
 
-      <!-- Action Toolbar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <span style="font-size: 13px; color: #94a3b8;"><i class="fa fa-signal text-emerald-400"></i> Live telemetry active</span>
-        <button id="refresh-data-btn" class="admin-btn admin-btn-secondary" style="width: auto; padding: 6px 14px; font-size: 12px;">
-          <i class="fa fa-rotate-right"></i> Refresh Data
-        </button>
+      <!-- Live Toolbar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 12px; color: #94a3b8;">
+          <i class="fa fa-signal text-emerald-400"></i> Auto-streaming live telemetry every 3 seconds
+        </span>
+        <div style="display: flex; gap: 8px;">
+          <button id="toggle-live-btn" class="admin-btn admin-btn-secondary" style="width: auto; padding: 6px 14px; font-size: 12px;">
+            <i class="fa fa-pause"></i> Pause Stream
+          </button>
+          <button id="refresh-data-btn" class="admin-btn admin-btn-secondary" style="width: auto; padding: 6px 14px; font-size: 12px;">
+            <i class="fa fa-rotate-right"></i> Refresh Now
+          </button>
+        </div>
       </div>
 
       <!-- Live Player Activity Table -->
@@ -370,7 +409,7 @@
           </thead>
           <tbody id="sessions-table-body">
             <tr>
-              <td colspan="6" style="text-align: center; color: #64748b;">Loading session telemetry...</td>
+              <td colspan="6" style="text-align: center; color: #64748b;">Connecting to live telemetry...</td>
             </tr>
           </tbody>
         </table>

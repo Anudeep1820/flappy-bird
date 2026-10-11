@@ -1,11 +1,14 @@
 /**
- * Admin Portal Dashboard Client
- * Handles authentication, real-time analytics visualization, and leaderboard moderation.
+ * Live Admin Portal Dashboard Client
+ * Continuous real-time streaming telemetry, live device analytics,
+ * and persistent scoreboard moderation.
  */
 
 class AdminPortal {
   constructor() {
     this.token = sessionStorage.getItem('flappy_admin_token');
+    this.pollTimer = null;
+    this.isStreaming = true;
 
     // DOM Elements
     this.loginView = document.getElementById('login-view');
@@ -15,6 +18,8 @@ class AdminPortal {
     this.loginError = document.getElementById('login-error');
     this.logoutBtn = document.getElementById('logout-btn');
     this.refreshBtn = document.getElementById('refresh-data-btn');
+    this.toggleLiveBtn = document.getElementById('toggle-live-btn');
+    this.liveIndicatorText = document.getElementById('live-indicator-text');
 
     // Stat Cards
     this.statPlayers = document.getElementById('stat-players');
@@ -37,6 +42,7 @@ class AdminPortal {
     if (this.token) {
       this.showDashboard();
       this.fetchDashboardData();
+      this.startLiveStream();
     } else {
       this.showLogin();
     }
@@ -61,9 +67,40 @@ class AdminPortal {
         this.fetchDashboardData();
       });
     }
+
+    if (this.toggleLiveBtn) {
+      this.toggleLiveBtn.addEventListener('click', () => {
+        this.toggleStream();
+      });
+    }
+  }
+
+  startLiveStream() {
+    clearInterval(this.pollTimer);
+    if (!this.isStreaming) return;
+
+    this.pollTimer = setInterval(() => {
+      if (this.token && this.isStreaming) {
+        this.fetchDashboardData(true);
+      }
+    }, 3000); // Live poll every 3 seconds!
+  }
+
+  toggleStream() {
+    this.isStreaming = !this.isStreaming;
+    if (this.isStreaming) {
+      this.startLiveStream();
+      if (this.toggleLiveBtn) this.toggleLiveBtn.innerHTML = '<i class="fa fa-pause"></i> Pause Stream';
+      if (this.liveIndicatorText) this.liveIndicatorText.textContent = 'LIVE SYNC (3s)';
+    } else {
+      clearInterval(this.pollTimer);
+      if (this.toggleLiveBtn) this.toggleLiveBtn.innerHTML = '<i class="fa fa-play"></i> Resume Stream';
+      if (this.liveIndicatorText) this.liveIndicatorText.textContent = 'STREAM PAUSED';
+    }
   }
 
   showLogin() {
+    clearInterval(this.pollTimer);
     this.loginView.style.display = 'block';
     this.dashboardView.style.display = 'none';
     this.logoutBtn.style.display = 'none';
@@ -95,6 +132,7 @@ class AdminPortal {
         sessionStorage.setItem('flappy_admin_token', this.token);
         this.showDashboard();
         this.fetchDashboardData();
+        this.startLiveStream();
       } else {
         if (this.loginError) {
           this.loginError.textContent = data.error || 'Invalid passcode. Please try again.';
@@ -112,14 +150,15 @@ class AdminPortal {
   logout() {
     this.token = null;
     sessionStorage.removeItem('flappy_admin_token');
+    clearInterval(this.pollTimer);
     this.showLogin();
   }
 
-  async fetchDashboardData() {
+  async fetchDashboardData(isBackground = false) {
     if (!this.token) return;
 
     try {
-      const res = await fetch('/api/admin?action=data', {
+      const res = await fetch('/api/admin?action=data&t=' + Date.now(), {
         headers: {
           Authorization: `Bearer ${this.token}`
         }
@@ -137,7 +176,7 @@ class AdminPortal {
       this.renderSessions(data.sessions || []);
       this.renderScores(data.scores || []);
     } catch (err) {
-      console.error(err);
+      if (!isBackground) console.error(err);
     }
   }
 
@@ -162,17 +201,25 @@ class AdminPortal {
 
     this.sessionsBody.innerHTML = sessions.map(s => {
       const timeAgo = this.formatRelativeTime(s.lastSeen);
-      const isRecent = (Date.now() - new Date(s.lastSeen).getTime()) < 300000; // < 5 mins
+      const isRecent = (Date.now() - new Date(s.lastSeen).getTime()) < 300000;
+      const isMobile = s.isMobile || /phone|android|mobile|ipad/i.test(s.device || '');
+      const badgeClass = isMobile ? 'badge-mobile' : 'badge-desktop';
+      const icon = isMobile ? '<i class="fa fa-mobile-screen"></i> ' : '<i class="fa fa-laptop"></i> ';
+
       return `
         <tr>
           <td>
             <div style="font-weight: 600; color: #f1f5f9;">
               ${this.escapeHtml(s.playerName || 'Guest')}
-              ${isRecent ? '<span style="color: #4ade80; font-size: 10px; margin-left: 4px;">● active</span>' : ''}
+              ${isRecent ? '<span style="color: #4ade80; font-size: 10px; margin-left: 4px;">● live</span>' : ''}
             </div>
             <div style="font-size: 10px; color: #64748b; font-family: monospace;">${this.escapeHtml(s.sessionId || '')}</div>
           </td>
-          <td><span class="badge-device">${this.escapeHtml(s.device || 'Unknown')}</span></td>
+          <td>
+            <span class="badge-device ${badgeClass}">
+              ${icon}${this.escapeHtml(s.device || 'Unknown')}
+            </span>
+          </td>
           <td>${this.escapeHtml(s.browser || 'Unknown')}</td>
           <td style="font-weight: 600;">${s.gamesPlayed || 1}</td>
           <td style="color: #facc15; font-weight: 700;">${s.highestScore || 0}</td>
@@ -218,7 +265,6 @@ class AdminPortal {
       `;
     }).join('');
 
-    // Attach delete listeners
     this.scoresBody.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const scoreId = e.currentTarget.getAttribute('data-id');
@@ -255,7 +301,8 @@ class AdminPortal {
   formatRelativeTime(isoString) {
     if (!isoString) return 'Never';
     const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
-    if (diff < 60) return 'Just now';
+    if (diff < 10) return 'Just now';
+    if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
@@ -274,7 +321,6 @@ class AdminPortal {
   }
 }
 
-// Instantiate on DOM load
 window.addEventListener('DOMContentLoaded', () => {
   new AdminPortal();
 });
