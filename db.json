@@ -40,13 +40,13 @@
   "sessions": [
     {
       "sessionId": "sess_1791702143123_v53vzc",
-      "playerName": "I AM NOIB",
+      "playerName": "BATMAN",
       "device": "Android Mobile",
       "browser": "Chrome",
       "resolution": "360x691",
       "isMobile": true,
       "firstSeen": "2026-10-11T09:45:10.401Z",
-      "lastSeen": "2026-10-11T09:45:10.401Z",
+      "lastSeen": "2026-10-11T09:46:11.583Z",
       "gamesPlayed": 1,
       "highestScore": 60
     },
