@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Flappy Bird Arcade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Game Canvas -->
+    <canvas id="game-canvas" width="360" height="600"></canvas>
+
+    <!-- UI Overlay: Start Screen -->
+    <div id="start-overlay" class="ui-screen">
+      <div class="game-logo">
+        <span class="logo-flappy">FLAPPY</span>
+        <span class="logo-bird">BIRD</span>
+      </div>
+      <div class="tap-instruction">
+        <span class="key-hint">[SPACE]</span> or <span class="tap-hint">TAP SCREEN</span> to Flap
+      </div>
+    </div>
+
+    <!-- UI Overlay: In-Game Score HUD -->
+    <div id="hud-score" class="hud-score">0</div>
+
+    <!-- UI Overlay: Game Over Screen -->
+    <div id="gameover-overlay" class="ui-screen hidden">
+      <div class="gameover-banner">GAME OVER</div>
+      <div class="scoreboard-panel">
+        <div class="score-row">
+          <span>SCORE</span>
+          <span id="final-score" class="score-val">0</span>
+        </div>
+        <div class="score-row">
+          <span>BEST</span>
+          <span id="high-score" class="score-val">0</span>
+        </div>
+        <div id="medal-container" class="medal-container">
+          <span id="medal-label">MEDAL</span>
+          <div id="medal-icon" class="medal-icon medal-none"></div>
+        </div>
+      </div>
+      <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <!-- Modular Game Scripts -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

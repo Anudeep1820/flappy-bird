@@ -1,0 +1,401 @@
+/**
+ * Main game coordinator for Flappy Bird
+ * Integrates rendering loop, physics, sound, HUD, and diagnostic controls.
+ */
+
+import { Bird } from './bird.js';
+import { PipeManager } from './pipes.js';
+import { sound } from './audio.js';
+import { Flags, DiagnosticManager } from './diagnostics.js';
+
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('game-canvas');
+    this.ctx = this.canvas.getContext('2d');
+
+    this.width = 360;
+    this.height = 600;
+    this.groundHeight = 96;
+
+    // High DPI Canvas Scaling
+    this.setupDPI();
+
+    // DOM UI Elements
+    this.startOverlay = document.getElementById('start-overlay');
+    this.gameoverOverlay = document.getElementById('gameover-overlay');
+    this.hudScore = document.getElementById('hud-score');
+    this.finalScoreEl = document.getElementById('final-score');
+    this.highScoreEl = document.getElementById('high-score');
+    this.medalIcon = document.getElementById('medal-icon');
+    this.restartBtn = document.getElementById('restart-btn');
+
+    // Game States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'GAMEOVER'
+    this.state = 'IDLE';
+    this.previousState = 'IDLE';
+    this.score = 0;
+    this.highScore = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
+
+    // Entities
+    this.bird = new Bird(this.width, this.height);
+    this.pipes = new PipeManager(this.width, this.height, this.groundHeight);
+
+    // Visuals & Parallax
+    this.groundOffset = 0;
+    this.cloudOffset = 0;
+    this.cityOffset = 0;
+    this.shakeFrames = 0;
+    this.particles = [];
+
+    // Diagnostic / Assist Manager
+    this.diagManager = new DiagnosticManager({
+      onOpen: () => this.handleDiagOpen(),
+      onClose: () => this.handleDiagClose()
+    });
+
+    this.initEvents();
+    this.lastTime = performance.now();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  setupDPI() {
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = this.width * dpr;
+    this.canvas.height = this.height * dpr;
+    this.ctx.scale(dpr, dpr);
+  }
+
+  initEvents() {
+    // Jump / Action Trigger (Keyboard)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        this.handleActionInput();
+      }
+    });
+
+    // Jump / Action Trigger (Pointer / Click / Touch)
+    this.canvas.addEventListener('pointerdown', () => {
+      if (this.state === 'PAUSED_DIAG') return;
+      this.handleActionInput();
+    });
+
+    // Restart button
+    if (this.restartBtn) {
+      this.restartBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.restartGame();
+      });
+    }
+
+    // Window resize DPI guard
+    window.addEventListener('resize', () => this.setupDPI());
+  }
+
+  handleActionInput() {
+    if (this.state === 'IDLE') {
+      this.startGame();
+      this.bird.flap();
+      sound.playFlap();
+      this.spawnFeathers(this.bird.x, this.bird.y);
+    } else if (this.state === 'PLAYING') {
+      this.bird.flap();
+      sound.playFlap();
+      this.spawnFeathers(this.bird.x, this.bird.y);
+    }
+  }
+
+  startGame() {
+    this.state = 'PLAYING';
+    if (this.startOverlay) this.startOverlay.classList.add('hidden');
+    if (this.hudScore) this.hudScore.textContent = '0';
+    this.score = 0;
+  }
+
+  handleDiagOpen() {
+    this.previousState = this.state;
+    this.state = 'PAUSED_DIAG';
+  }
+
+  handleDiagClose() {
+    this.state = this.previousState;
+    this.lastTime = performance.now();
+  }
+
+  gameOver() {
+    this.state = 'GAMEOVER';
+    this.bird.isDead = true;
+    sound.playHit();
+    this.shakeFrames = 14;
+
+    // High Score tracking
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem('flappy_highscore', this.highScore.toString());
+    }
+
+    if (this.finalScoreEl) this.finalScoreEl.textContent = this.score;
+    if (this.highScoreEl) this.highScoreEl.textContent = this.highScore;
+
+    this.assignMedal(this.score);
+
+    if (this.gameoverOverlay) {
+      setTimeout(() => {
+        this.gameoverOverlay.classList.remove('hidden');
+      }, 400);
+    }
+  }
+
+  assignMedal(score) {
+    if (!this.medalIcon) return;
+    this.medalIcon.className = 'medal-icon';
+
+    if (score >= 70) {
+      this.medalIcon.classList.add('medal-platinum');
+    } else if (score >= 40) {
+      this.medalIcon.classList.add('medal-gold');
+    } else if (score >= 20) {
+      this.medalIcon.classList.add('medal-silver');
+    } else if (score >= 10) {
+      this.medalIcon.classList.add('medal-bronze');
+    } else {
+      this.medalIcon.classList.add('medal-none');
+    }
+  }
+
+  restartGame() {
+    this.score = 0;
+    if (this.hudScore) this.hudScore.textContent = '0';
+    this.bird.reset();
+    this.pipes.reset();
+    this.particles = [];
+
+    if (this.gameoverOverlay) this.gameoverOverlay.classList.add('hidden');
+    if (this.startOverlay) this.startOverlay.classList.remove('hidden');
+
+    this.state = 'IDLE';
+  }
+
+  spawnFeathers(x, y) {
+    for (let i = 0; i < 4; i++) {
+      this.particles.push({
+        x: x - 10,
+        y: y + 8,
+        vx: (Math.random() - 0.5) * 2 - 1,
+        vy: Math.random() * 2 + 0.5,
+        size: Math.random() * 2.5 + 1.5,
+        alpha: 0.9,
+        color: '#ffffff'
+      });
+    }
+  }
+
+  spawnScoreBurst(x, y) {
+    for (let i = 0; i < 10; i++) {
+      const angle = (Math.PI * 2 / 10) * i;
+      const speed = Math.random() * 2.5 + 2;
+      this.particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 3,
+        alpha: 1,
+        color: '#ffe600'
+      });
+    }
+  }
+
+  loop(currentTime) {
+    const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
+    this.lastTime = currentTime;
+
+    this.update(dt);
+    this.render();
+
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  update(dt) {
+    if (this.state === 'PAUSED_DIAG') return;
+
+    const speedMult = Flags.superSpeed ? 2.5 : 1.0;
+    const scrollDelta = 2.4 * speedMult;
+
+    // Background & ground parallax scrolling
+    if (this.state !== 'GAMEOVER') {
+      this.cloudOffset = (this.cloudOffset + 0.4 * speedMult) % 360;
+      this.cityOffset = (this.cityOffset + 0.9 * speedMult) % 360;
+      this.groundOffset = (this.groundOffset + scrollDelta) % 24;
+    }
+
+    // Bird idle hover bobbing
+    if (this.state === 'IDLE') {
+      this.bird.y = (this.height / 2 - 40) + Math.sin(performance.now() * 0.005) * 6;
+      this.bird.animTick++;
+      if (this.bird.animTick % 6 === 0) {
+        this.bird.wingPhase = (this.bird.wingPhase + 1) % 4;
+      }
+    }
+
+    // Active gameplay update
+    if (this.state === 'PLAYING') {
+      this.bird.update(dt, Flags);
+
+      this.pipes.update(dt, Flags, this.bird, () => {
+        this.score++;
+        if (this.hudScore) this.hudScore.textContent = this.score;
+        sound.playScore();
+        this.spawnScoreBurst(this.bird.x + 20, this.bird.y);
+      });
+
+      // Collision Check
+      if (this.pipes.checkCollision(this.bird, Flags)) {
+        this.gameOver();
+      }
+    }
+
+    // Bird falling after gameover hit
+    if (this.state === 'GAMEOVER') {
+      const playableHeight = this.height - this.groundHeight;
+      if (this.bird.y < playableHeight - this.bird.height / 2) {
+        this.bird.velocity += this.bird.gravity * 1.5;
+        this.bird.y += this.bird.velocity;
+        this.bird.rotation = Math.min(Math.PI / 2, this.bird.rotation + 0.08);
+      }
+    }
+
+    // Particle system update
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.035;
+      if (p.alpha <= 0) {
+        this.particles.splice(i, 1);
+      }
+    }
+
+    // Screen shake decay
+    if (this.shakeFrames > 0) {
+      this.shakeFrames--;
+    }
+  }
+
+  render() {
+    this.ctx.save();
+
+    if (this.shakeFrames > 0) {
+      const shakeMag = this.shakeFrames * 0.7;
+      const offsetX = (Math.random() - 0.5) * shakeMag;
+      const offsetY = (Math.random() - 0.5) * shakeMag;
+      this.ctx.translate(offsetX, offsetY);
+    }
+
+    // 1. Sky Gradient
+    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.height - this.groundHeight);
+    skyGrad.addColorStop(0, '#4ec0ca');
+    skyGrad.addColorStop(1, '#a1e4e6');
+    this.ctx.fillStyle = skyGrad;
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    // 2. Parallax Clouds Layer
+    this.drawClouds();
+
+    // 3. Parallax City Skyline Layer
+    this.drawSkyline();
+
+    // 4. Pipes
+    this.pipes.draw(this.ctx);
+
+    // 5. Ground Layer
+    this.drawGround();
+
+    // 6. Particles
+    this.drawParticles();
+
+    // 7. Bird Entity
+    this.bird.draw(this.ctx, Flags);
+
+    this.ctx.restore();
+  }
+
+  drawClouds() {
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    const baseY = 240;
+
+    for (let i = -1; i < 3; i++) {
+      const x = i * 200 - (this.cloudOffset * 0.6);
+      this.ctx.beginPath();
+      this.ctx.arc(x + 40, baseY, 28, 0, Math.PI * 2);
+      this.ctx.arc(x + 75, baseY - 12, 34, 0, Math.PI * 2);
+      this.ctx.arc(x + 110, baseY, 26, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+  }
+
+  drawSkyline() {
+    const baseY = this.height - this.groundHeight;
+    this.ctx.fillStyle = '#83cfb8';
+
+    for (let i = -1; i < 3; i++) {
+      const startX = i * 240 - this.cityOffset;
+      this.ctx.fillRect(startX + 10, baseY - 60, 42, 60);
+      this.ctx.fillRect(startX + 58, baseY - 85, 34, 85);
+      this.ctx.fillRect(startX + 98, baseY - 45, 52, 45);
+      this.ctx.fillRect(startX + 156, baseY - 70, 36, 70);
+      this.ctx.fillRect(startX + 198, baseY - 50, 32, 50);
+
+      this.ctx.fillStyle = '#b7edd8';
+      this.ctx.fillRect(startX + 65, baseY - 75, 6, 8);
+      this.ctx.fillRect(startX + 77, baseY - 75, 6, 8);
+      this.ctx.fillRect(startX + 65, baseY - 60, 6, 8);
+      this.ctx.fillRect(startX + 77, baseY - 60, 6, 8);
+      this.ctx.fillStyle = '#83cfb8';
+    }
+  }
+
+  drawGround() {
+    const groundY = this.height - this.groundHeight;
+    const groundW = this.width;
+
+    this.ctx.fillStyle = '#73bf2e';
+    this.ctx.fillRect(0, groundY, groundW, 14);
+
+    this.ctx.fillStyle = '#8be238';
+    this.ctx.fillRect(0, groundY, groundW, 3);
+
+    this.ctx.fillStyle = '#543847';
+    this.ctx.fillRect(0, groundY + 14, groundW, 2);
+
+    this.ctx.fillStyle = '#ded895';
+    this.ctx.fillRect(0, groundY + 16, groundW, this.groundHeight - 16);
+
+    this.ctx.fillStyle = '#ba9c59';
+    for (let x = -24; x < groundW + 24; x += 18) {
+      const drawX = x - this.groundOffset;
+      this.ctx.beginPath();
+      this.ctx.moveTo(drawX, groundY + 16);
+      this.ctx.lineTo(drawX + 8, groundY + 16);
+      this.ctx.lineTo(drawX - 2, groundY + 36);
+      this.ctx.lineTo(drawX - 10, groundY + 36);
+      this.ctx.closePath();
+      this.ctx.fill();
+    }
+  }
+
+  drawParticles() {
+    for (const p of this.particles) {
+      this.ctx.save();
+      this.ctx.globalAlpha = Math.max(0, p.alpha);
+      this.ctx.fillStyle = p.color;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  new Game();
+});
