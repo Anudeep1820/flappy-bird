@@ -1,6 +1,14 @@
 {
   "scores": [
     {
+      "id": "score_1791712033168_buq9p",
+      "name": "BATMAN",
+      "score": 53,
+      "medal": "gold",
+      "sessionId": "sess_1791702143123_v53vzc",
+      "date": "2026-10-11T09:47:13.168Z"
+    },
+    {
       "id": "score-1",
       "name": "AceFlapper",
       "score": 42,
