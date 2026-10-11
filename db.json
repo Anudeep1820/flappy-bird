@@ -48,13 +48,13 @@
   "sessions": [
     {
       "sessionId": "sess_1791704415186_t9ionc",
-      "playerName": "Guest",
+      "playerName": "Pro",
       "device": "Android Mobile",
       "browser": "Chrome",
       "resolution": "361x698",
       "isMobile": true,
       "firstSeen": "2026-10-11T11:54:11.900Z",
-      "lastSeen": "2026-10-11T11:55:32.117Z",
+      "lastSeen": "2026-10-11T11:55:45.908Z",
       "gamesPlayed": 1,
       "highestScore": 0
     },
