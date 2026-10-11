@@ -24,6 +24,9 @@
       <div class="tap-instruction">
         <span class="desktop-hint">[SPACE] or </span><span class="tap-hint">TAP TO FLAP</span>
       </div>
+      <button id="leaderboard-btn-start" class="arcade-btn sub-btn" style="margin-top: 18px; pointer-events: auto;">
+        🏆 RANKINGS
+      </button>
     </div>
 
     <!-- UI Overlay: In-Game Score HUD -->
@@ -46,8 +49,34 @@
           <div id="medal-icon" class="medal-icon medal-none"></div>
         </div>
       </div>
-      <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+
+      <!-- Submit Score to Global Leaderboard -->
+      <div id="submit-score-section" class="submit-score-section">
+        <input type="text" id="player-name-input" maxlength="12" placeholder="YOUR NAME" class="name-input" autocomplete="off" autocorrect="off">
+        <button id="submit-score-btn" class="arcade-btn submit-btn">POST</button>
+      </div>
+      <div id="submit-status-msg" class="submit-status-msg"></div>
+
+      <div class="gameover-actions">
+        <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+        <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANKINGS</button>
+      </div>
       <div class="restart-hint">Tap anywhere to restart</div>
+    </div>
+
+    <!-- UI Overlay: Global Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal-overlay hidden">
+      <div class="leaderboard-content">
+        <div class="leaderboard-header">
+          <span class="leaderboard-title">🏆 HALL OF FAME</span>
+          <button id="leaderboard-close-btn" class="close-x">&times;</button>
+        </div>
+        <div class="leaderboard-scroll">
+          <div id="leaderboard-list" class="leaderboard-list">
+            <div style="text-align: center; color: #88aacc; padding: 20px; font-size: 11px;">Loading rankings...</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

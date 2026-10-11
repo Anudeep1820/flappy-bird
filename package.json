@@ -1,0 +1,7 @@
+{
+  "name": "flappy-bird",
+  "version": "1.0.0",
+  "description": "Flappy Bird Arcade with Global Scoreboard and Admin Portal",
+  "type": "module",
+  "private": true
+}

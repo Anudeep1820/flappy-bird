@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Flappy Bird - Admin Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Dedicated Admin Portal Styling */
+    body.admin-body {
+      background: #090c14;
+      color: #e2e8f0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-y: auto;
+      position: static;
+      display: block;
+      padding: 20px;
+    }
+
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #1e293b;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .admin-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .admin-badge {
+      font-size: 11px;
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #22c55e;
+      font-weight: 600;
+    }
+
+    /* Login Card */
+    .admin-login-card {
+      max-width: 420px;
+      margin: 80px auto;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(56, 189, 248, 0.1);
+      text-align: center;
+    }
+
+    .admin-login-card h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: #38bdf8;
+      margin-bottom: 12px;
+    }
+
+    .admin-login-card p {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    .admin-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .admin-input-group label {
+      font-size: 12px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .admin-input {
+      background: #0b0f19;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .admin-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .admin-btn {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+
+    .admin-btn:hover {
+      background: #0369a1;
+    }
+
+    .admin-btn-secondary {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+
+    .admin-btn-secondary:hover {
+      background: #334155;
+    }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* Tables Section */
+    .portal-section {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    .section-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      padding: 12px 14px;
+      background: #0f172a;
+      color: #94a3b8;
+      font-weight: 600;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    table.data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+
+    table.data-table tr:hover {
+      background: #1e293b44;
+    }
+
+    .badge-device {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+    }
+
+    .delete-btn {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    .delete-btn:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .portal-nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .back-to-game {
+      color: #38bdf8;
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-to-game:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="admin-body">
+  <div class="admin-container">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="admin-title">
+        <span>🎮 FLAPPY BIRD</span>
+        <span class="admin-badge">ADMIN PORTAL</span>
+      </div>
+      <div class="portal-nav-actions">
+        <a href="index.html" class="back-to-game"><i class="fa fa-arrow-left"></i> Back to Game</a>
+        <button id="logout-btn" class="admin-btn admin-btn-secondary" style="display: none; padding: 6px 14px; font-size: 12px;">Logout</button>
+      </div>
+    </header>
+
+    <!-- Login View -->
+    <div id="login-view" class="admin-login-card">
+      <h2>AUTHENTICATION</h2>
+      <p>Enter the administrator passcode to inspect live sessions and manage the scoreboard.</p>
+      <form id="admin-login-form">
+        <div class="admin-input-group">
+          <label for="passcode-input">Admin Passcode</label>
+          <input type="password" id="passcode-input" class="admin-input" placeholder="Enter passcode" required autofocus>
+        </div>
+        <button type="submit" class="admin-btn">ACCESS DASHBOARD</button>
+        <div id="login-error" class="error-msg">Invalid passcode. Please try again.</div>
+      </form>
+    </div>
+
+    <!-- Dashboard View (Protected) -->
+    <div id="dashboard-view" style="display: none;">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span>TOTAL PLAYERS</span>
+            <i class="fa fa-users text-sky-400"></i>
+          </div>
+          <div id="stat-players" class="stat-value">0</div>
+          <div class="stat-sub">Unique device sessions</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span>TOTAL GAMES PLAYED</span>
+            <i class="fa fa-gamepad text-emerald-400"></i>
+          </div>
+          <div id="stat-games" class="stat-value">0</div>
+          <div class="stat-sub">Combined game runs</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span>RECORD HIGH SCORE</span>
+            <i class="fa fa-trophy text-amber-400"></i>
+          </div>
+          <div id="stat-high-score" class="stat-value">0</div>
+          <div class="stat-sub">Global server best</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span>MOBILE USERS</span>
+            <i class="fa fa-mobile-screen text-indigo-400"></i>
+          </div>
+          <div id="stat-mobile" class="stat-value">0%</div>
+          <div class="stat-sub">Smartphones &amp; Tablets</div>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-size: 13px; color: #94a3b8;"><i class="fa fa-signal text-emerald-400"></i> Live telemetry active</span>
+        <button id="refresh-data-btn" class="admin-btn admin-btn-secondary" style="width: auto; padding: 6px 14px; font-size: 12px;">
+          <i class="fa fa-rotate-right"></i> Refresh Data
+        </button>
+      </div>
+
+      <!-- Live Player Activity Table -->
+      <div class="portal-section">
+        <div class="section-title">
+          <span>👥 WHO PLAYED THE GAME (SESSIONS)</span>
+          <span id="sessions-count-badge" style="font-size: 11px; color: #64748b;">0 records</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Player / Alias</th>
+              <th>Device &amp; OS</th>
+              <th>Browser</th>
+              <th>Runs</th>
+              <th>Best Score</th>
+              <th>Last Active</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-table-body">
+            <tr>
+              <td colspan="6" style="text-align: center; color: #64748b;">Loading session telemetry...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Global Scoreboard Management Table -->
+      <div class="portal-section">
+        <div class="section-title">
+          <span>🏆 GLOBAL SCOREBOARD ENTRIES</span>
+          <span id="scores-count-badge" style="font-size: 11px; color: #64748b;">0 entries</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Player Name</th>
+              <th>Score</th>
+              <th>Medal</th>
+              <th>Submitted Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="scores-table-body">
+            <tr>
+              <td colspan="6" style="text-align: center; color: #64748b;">Loading leaderboard entries...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

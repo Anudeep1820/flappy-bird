@@ -1,13 +1,14 @@
 /**
  * Main game coordinator for Flappy Bird
- * Integrates rendering loop, physics, sound, HUD, and diagnostic controls.
- * Full cross-device support for mobile phones, tablets, and desktop.
+ * Integrates rendering loop, physics, sound, HUD, diagnostic controls,
+ * and global scoreboard telemetry.
  */
 
 import { Bird } from './bird.js';
 import { PipeManager } from './pipes.js';
 import { sound } from './audio.js';
 import { Flags, DiagnosticManager } from './diagnostics.js';
+import { leaderboardClient } from './leaderboard.js';
 
 class Game {
   constructor() {
@@ -31,12 +32,23 @@ class Game {
     this.medalIcon = document.getElementById('medal-icon');
     this.restartBtn = document.getElementById('restart-btn');
 
-    // Game States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'GAMEOVER'
+    // Leaderboard UI Elements
+    this.leaderboardBtnStart = document.getElementById('leaderboard-btn-start');
+    this.leaderboardBtnOver = document.getElementById('leaderboard-btn-over');
+    this.leaderboardModal = document.getElementById('leaderboard-modal');
+    this.leaderboardCloseBtn = document.getElementById('leaderboard-close-btn');
+    this.leaderboardList = document.getElementById('leaderboard-list');
+    this.playerNameInput = document.getElementById('player-name-input');
+    this.submitScoreBtn = document.getElementById('submit-score-btn');
+    this.submitStatusMsg = document.getElementById('submit-status-msg');
+
+    // Game States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'GAMEOVER'
     this.state = 'IDLE';
     this.previousState = 'IDLE';
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
-    this.gameOverTime = 0; // cooldown for tap-to-restart
+    this.gameOverTime = 0;
+    this.lastSubmittedScoreId = null;
 
     // Entities
     this.bird = new Bird(this.width, this.height);
@@ -71,8 +83,18 @@ class Game {
   initEvents() {
     // 1. Keyboard Controls (Desktop / Laptop)
     window.addEventListener('keydown', (e) => {
-      // Ignore when typing inside input elements
-      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        if (e.key === 'Enter' && e.target === this.playerNameInput) {
+          e.preventDefault();
+          this.handleScoreSubmit();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape' && this.state === 'PAUSED_LEADERBOARD') {
+        this.closeLeaderboard();
+        return;
+      }
 
       if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
@@ -83,16 +105,15 @@ class Game {
       }
     });
 
-    // 2. Touch / Pointer Controls (Mobile / Tablet / Mouse)
+    // 2. Touch / Pointer Controls
     const onActionPointer = (e) => {
-      // Ignore clicks inside modal if open
-      if (this.state === 'PAUSED_DIAG') return;
-      if (e.target.closest('#diag-modal')) return;
+      if (this.state === 'PAUSED_DIAG' || this.state === 'PAUSED_LEADERBOARD') return;
+      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal')) return;
+      if (e.target.closest('#submit-score-section') || e.target.closest('#player-name-input')) return;
 
-      // Handle restart tap during game over screen
       if (this.state === 'GAMEOVER') {
         const timeSinceGameOver = performance.now() - this.gameOverTime;
-        if (timeSinceGameOver > 400) {
+        if (timeSinceGameOver > 450) {
           this.restartGame();
         }
         return;
@@ -101,31 +122,51 @@ class Game {
       this.handleActionInput();
     };
 
-    // Attach to game container so taps anywhere on screen register
     if (this.container) {
       this.container.addEventListener('pointerdown', onActionPointer);
-
-      // Prevent default context menu on mobile touch hold
       this.container.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    // 3. Restart button explicit tap
+    // 3. Restart button
     if (this.restartBtn) {
       this.restartBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.restartGame();
       });
-      this.restartBtn.addEventListener('touchend', (e) => {
-        e.stopPropagation();
-        this.restartGame();
-      }, { passive: true });
     }
 
-    // 4. Responsive Resize & Orientation Change
+    // 4. Leaderboard Open & Close Buttons
+    if (this.leaderboardBtnStart) {
+      this.leaderboardBtnStart.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openLeaderboard();
+      });
+    }
+    if (this.leaderboardBtnOver) {
+      this.leaderboardBtnOver.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openLeaderboard();
+      });
+    }
+    if (this.leaderboardCloseBtn) {
+      this.leaderboardCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeLeaderboard();
+      });
+    }
+
+    // 5. Score Submit Button
+    if (this.submitScoreBtn) {
+      this.submitScoreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleScoreSubmit();
+      });
+    }
+
+    // 6. Responsive Resize & Orientation Change
     const handleResize = () => {
       this.setupDPI();
     };
-
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', () => {
       setTimeout(handleResize, 100);
@@ -162,12 +203,92 @@ class Game {
     this.lastTime = performance.now();
   }
 
+  async openLeaderboard() {
+    this.previousState = this.state;
+    this.state = 'PAUSED_LEADERBOARD';
+
+    if (this.leaderboardModal) {
+      this.leaderboardModal.classList.remove('hidden');
+    }
+
+    if (this.leaderboardList) {
+      this.leaderboardList.innerHTML = `<div style="text-align: center; color: #88aacc; padding: 24px; font-size: 11px;">Loading top rankings...</div>`;
+      const scores = await leaderboardClient.fetchScores();
+      this.renderLeaderboardRows(scores);
+    }
+  }
+
+  closeLeaderboard() {
+    this.state = this.previousState;
+    this.lastTime = performance.now();
+
+    if (this.leaderboardModal) {
+      this.leaderboardModal.classList.add('hidden');
+    }
+  }
+
+  renderLeaderboardRows(scores) {
+    if (!this.leaderboardList) return;
+
+    if (!scores || scores.length === 0) {
+      this.leaderboardList.innerHTML = `<div style="text-align: center; color: #88aacc; padding: 24px; font-size: 11px;">No rankings yet. Be the first to score!</div>`;
+      return;
+    }
+
+    this.leaderboardList.innerHTML = scores.slice(0, 30).map((s, idx) => {
+      const rank = idx + 1;
+      const rankClass = rank === 1 ? 'rank-1' : (rank === 2 ? 'rank-2' : (rank === 3 ? 'rank-3' : ''));
+      const isMe = this.lastSubmittedScoreId && this.lastSubmittedScoreId === s.id;
+
+      return `
+        <div class="leaderboard-row ${isMe ? 'highlight-me' : ''}">
+          <div class="leaderboard-left">
+            <span class="rank-pill ${rankClass}">#${rank}</span>
+            <span class="player-name-label">${this.escapeHtml(s.name || 'Anonymous')}</span>
+          </div>
+          <span class="leaderboard-score-val">${s.score}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async handleScoreSubmit() {
+    if (!this.playerNameInput) return;
+    const name = this.playerNameInput.value.trim() || 'Player';
+    const medal = this.getMedalName(this.score);
+
+    if (this.submitStatusMsg) {
+      this.submitStatusMsg.textContent = 'Saving...';
+      this.submitStatusMsg.style.color = '#38bdf8';
+    }
+
+    const entry = await leaderboardClient.submitScore(name, this.score, medal);
+    if (entry) {
+      this.lastSubmittedScoreId = entry.id;
+      if (this.submitStatusMsg) {
+        this.submitStatusMsg.textContent = 'Saved to Leaderboard!';
+        this.submitStatusMsg.style.color = '#4ade80';
+      }
+      setTimeout(() => {
+        this.openLeaderboard();
+      }, 400);
+    } else {
+      if (this.submitStatusMsg) {
+        this.submitStatusMsg.textContent = 'Failed to submit. Try again.';
+        this.submitStatusMsg.style.color = '#f87171';
+      }
+    }
+  }
+
   gameOver() {
     this.state = 'GAMEOVER';
     this.gameOverTime = performance.now();
     this.bird.isDead = true;
     sound.playHit();
     this.shakeFrames = 14;
+
+    // Log gameplay telemetry
+    leaderboardClient.logGamePlayed(this.score);
 
     // High Score tracking
     if (this.score > this.highScore) {
@@ -180,6 +301,14 @@ class Game {
 
     this.assignMedal(this.score);
 
+    // Pre-fill name and reset submission message
+    if (this.playerNameInput) {
+      this.playerNameInput.value = localStorage.getItem('flappy_player_name') || '';
+    }
+    if (this.submitStatusMsg) {
+      this.submitStatusMsg.textContent = '';
+    }
+
     if (this.gameoverOverlay) {
       setTimeout(() => {
         this.gameoverOverlay.classList.remove('hidden');
@@ -187,21 +316,20 @@ class Game {
     }
   }
 
+  getMedalName(score) {
+    if (score >= 70) return 'platinum';
+    if (score >= 40) return 'gold';
+    if (score >= 20) return 'silver';
+    if (score >= 10) return 'bronze';
+    return 'none';
+  }
+
   assignMedal(score) {
     if (!this.medalIcon) return;
     this.medalIcon.className = 'medal-icon';
 
-    if (score >= 70) {
-      this.medalIcon.classList.add('medal-platinum');
-    } else if (score >= 40) {
-      this.medalIcon.classList.add('medal-gold');
-    } else if (score >= 20) {
-      this.medalIcon.classList.add('medal-silver');
-    } else if (score >= 10) {
-      this.medalIcon.classList.add('medal-bronze');
-    } else {
-      this.medalIcon.classList.add('medal-none');
-    }
+    const medal = this.getMedalName(score);
+    this.medalIcon.classList.add(`medal-${medal}`);
   }
 
   restartGame() {
@@ -258,7 +386,7 @@ class Game {
   }
 
   update(dt) {
-    if (this.state === 'PAUSED_DIAG') return;
+    if (this.state === 'PAUSED_DIAG' || this.state === 'PAUSED_LEADERBOARD') return;
 
     const speedMult = Flags.superSpeed ? 2.5 : 1.0;
     const scrollDelta = 2.4 * speedMult;
@@ -435,6 +563,12 @@ class Game {
       this.ctx.fill();
       this.ctx.restore();
     }
+  }
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 }
 
