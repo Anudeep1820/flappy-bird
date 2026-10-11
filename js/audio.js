@@ -1,12 +1,32 @@
 /**
  * Procedural Web Audio API sound generator for Flappy Bird
  * Zero external asset dependencies.
+ * Cross-platform auto-resume for iOS Safari and mobile browsers.
  */
 
 class AudioController {
   constructor() {
     this.ctx = null;
     this.muted = false;
+    this.unlocked = false;
+
+    this.setupUnlockListeners();
+  }
+
+  setupUnlockListeners() {
+    const unlock = () => {
+      this.init();
+      if (this.ctx && this.ctx.state === 'running') {
+        this.unlocked = true;
+        ['touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+          window.removeEventListener(evt, unlock);
+        });
+      }
+    };
+
+    ['touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+      window.addEventListener(evt, unlock, { passive: true });
+    });
   }
 
   init() {
@@ -17,7 +37,7 @@ class AudioController {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
   }
 
@@ -54,7 +74,6 @@ class AudioController {
     try {
       const now = this.ctx.currentTime;
       
-      // Dual tone arcade bell chime
       [587.33, 880.00].forEach((freq, i) => {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();

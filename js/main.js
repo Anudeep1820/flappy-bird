@@ -1,6 +1,7 @@
 /**
  * Main game coordinator for Flappy Bird
  * Integrates rendering loop, physics, sound, HUD, and diagnostic controls.
+ * Full cross-device support for mobile phones, tablets, and desktop.
  */
 
 import { Bird } from './bird.js';
@@ -10,6 +11,7 @@ import { Flags, DiagnosticManager } from './diagnostics.js';
 
 class Game {
   constructor() {
+    this.container = document.getElementById('game-container');
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
 
@@ -34,6 +36,7 @@ class Game {
     this.previousState = 'IDLE';
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('flappy_highscore') || '0', 10);
+    this.gameOverTime = 0; // cooldown for tap-to-restart
 
     // Entities
     this.bird = new Bird(this.width, this.height);
@@ -58,37 +61,75 @@ class Game {
   }
 
   setupDPI() {
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    this.canvas.width = Math.floor(this.width * dpr);
+    this.canvas.height = Math.floor(this.height * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.imageSmoothingEnabled = false;
   }
 
   initEvents() {
-    // Jump / Action Trigger (Keyboard)
+    // 1. Keyboard Controls (Desktop / Laptop)
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
+      // Ignore when typing inside input elements
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         this.handleActionInput();
+      } else if (e.code === 'Enter' && this.state === 'GAMEOVER') {
+        e.preventDefault();
+        this.restartGame();
       }
     });
 
-    // Jump / Action Trigger (Pointer / Click / Touch)
-    this.canvas.addEventListener('pointerdown', () => {
+    // 2. Touch / Pointer Controls (Mobile / Tablet / Mouse)
+    const onActionPointer = (e) => {
+      // Ignore clicks inside modal if open
       if (this.state === 'PAUSED_DIAG') return;
-      this.handleActionInput();
-    });
+      if (e.target.closest('#diag-modal')) return;
 
-    // Restart button
+      // Handle restart tap during game over screen
+      if (this.state === 'GAMEOVER') {
+        const timeSinceGameOver = performance.now() - this.gameOverTime;
+        if (timeSinceGameOver > 400) {
+          this.restartGame();
+        }
+        return;
+      }
+
+      this.handleActionInput();
+    };
+
+    // Attach to game container so taps anywhere on screen register
+    if (this.container) {
+      this.container.addEventListener('pointerdown', onActionPointer);
+
+      // Prevent default context menu on mobile touch hold
+      this.container.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    // 3. Restart button explicit tap
     if (this.restartBtn) {
       this.restartBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.restartGame();
       });
+      this.restartBtn.addEventListener('touchend', (e) => {
+        e.stopPropagation();
+        this.restartGame();
+      }, { passive: true });
     }
 
-    // Window resize DPI guard
-    window.addEventListener('resize', () => this.setupDPI());
+    // 4. Responsive Resize & Orientation Change
+    const handleResize = () => {
+      this.setupDPI();
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(handleResize, 100);
+    });
   }
 
   handleActionInput() {
@@ -123,6 +164,7 @@ class Game {
 
   gameOver() {
     this.state = 'GAMEOVER';
+    this.gameOverTime = performance.now();
     this.bird.isDead = true;
     sound.playHit();
     this.shakeFrames = 14;
@@ -141,7 +183,7 @@ class Game {
     if (this.gameoverOverlay) {
       setTimeout(() => {
         this.gameoverOverlay.classList.remove('hidden');
-      }, 400);
+      }, 350);
     }
   }
 

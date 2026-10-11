@@ -1,40 +1,83 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
-body {
-  background: #11141a;
-  min-height: 100vh;
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: #0d1017;
+  overflow: hidden;
+  position: fixed;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: 'Press Start 2P', monospace, sans-serif;
-  overflow: hidden;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 #game-container {
   position: relative;
-  width: 360px;
-  height: 600px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 255, 0.1);
+  /* Dynamic viewport scaling preserving 360:600 (3:5) aspect ratio across all devices */
+  width: min(100vw, calc(100dvh * 360 / 600));
+  height: min(100dvh, calc(100vw * 600 / 360));
+  max-width: 480px;
+  max-height: 800px;
+  aspect-ratio: 360 / 600;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(0, 255, 255, 0.12);
   border-radius: 12px;
   overflow: hidden;
   background: #70c5ce;
+  touch-action: none;
 }
 
-/* Canvas fills the container */
+/* Full bleed adaptation for mobile portrait */
+@media (max-width: 480px) and (orientation: portrait) {
+  #game-container {
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Mobile landscape adaptation */
+@media (orientation: landscape) and (max-height: 540px) {
+  #game-container {
+    height: 96dvh;
+    width: calc(96dvh * 360 / 600);
+    border-radius: 8px;
+  }
+}
+
+/* Canvas fills container crisply */
 #game-canvas {
   display: block;
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
 }
 
 /* Common UI Screen */
@@ -48,9 +91,10 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  pointer-events: auto;
+  pointer-events: none; /* Allows taps to pass through to game */
   transition: opacity 0.25s ease;
   z-index: 10;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
 }
 
 .ui-screen.hidden {
@@ -60,7 +104,7 @@ body {
 
 /* Start Overlay */
 .game-logo {
-  font-size: 26px;
+  font-size: clamp(20px, 6vw, 26px);
   line-height: 1.3;
   text-align: center;
   text-shadow: 3px 3px 0 #543847, -2px -2px 0 #fff;
@@ -78,17 +122,28 @@ body {
 }
 
 .tap-instruction {
-  font-size: 11px;
+  font-size: clamp(9px, 2.8vw, 11px);
   color: #ffffff;
   text-shadow: 2px 2px 0 #333;
-  margin-top: 140px;
+  margin-top: clamp(100px, 22vh, 140px);
   text-align: center;
   line-height: 1.8;
   animation: pulse 1.4s infinite alternate ease-in-out;
 }
 
-.key-hint, .tap-hint {
+@media (hover: none) and (pointer: coarse) {
+  .desktop-hint {
+    display: none;
+  }
+}
+
+.desktop-hint {
   color: #ffe600;
+}
+
+.tap-hint {
+  color: #ffe600;
+  letter-spacing: 0.5px;
 }
 
 @keyframes pulse {
@@ -99,11 +154,11 @@ body {
 /* In-Game Score HUD */
 .hud-score {
   position: absolute;
-  top: 36px;
+  top: calc(28px + var(--safe-top));
   left: 0;
   width: 100%;
   text-align: center;
-  font-size: 38px;
+  font-size: clamp(32px, 9vw, 42px);
   color: #ffffff;
   text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
   z-index: 15;
@@ -113,8 +168,8 @@ body {
 /* Dynamic Status Badges */
 .diag-badges {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: calc(12px + var(--safe-top));
+  left: calc(12px + var(--safe-left));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -123,7 +178,7 @@ body {
 }
 
 .badge {
-  font-size: 8px;
+  font-size: clamp(7px, 2vw, 8px);
   padding: 4px 6px;
   border-radius: 4px;
   font-family: 'Press Start 2P', monospace;
@@ -160,10 +215,10 @@ body {
 
 /* Game Over Screen */
 .gameover-banner {
-  font-size: 26px;
+  font-size: clamp(20px, 6vw, 26px);
   color: #e86100;
   text-shadow: 3px 3px 0 #fff, -2px -2px 0 #543847;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .scoreboard-panel {
@@ -171,9 +226,9 @@ body {
   border: 3px solid #543847;
   border-radius: 8px;
   padding: 16px 20px;
-  width: 250px;
+  width: min(280px, 85%);
   box-shadow: 0 6px 0 #ba9c59, inset 0 3px 0 #fff;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   color: #d16100;
   font-size: 11px;
 }
@@ -215,14 +270,16 @@ body {
 
 .arcade-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
+  font-size: clamp(10px, 2.8vw, 12px);
   background: #e86100;
   color: #fff;
   border: 3px solid #fff;
   border-radius: 6px;
-  padding: 12px 20px;
+  padding: 14px 24px;
+  min-height: 48px; /* Touch target size */
   cursor: pointer;
   box-shadow: 0 4px 0 #543847;
+  pointer-events: auto; /* Active tap target */
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
@@ -235,6 +292,14 @@ body {
   box-shadow: 0 1px 0 #543847;
 }
 
+.restart-hint {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: #ffffff;
+  margin-top: 10px;
+  opacity: 0.7;
+}
+
 /* Dynamic Modal Overlay */
 .modal-overlay {
   position: absolute;
@@ -242,13 +307,15 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 15, 25, 0.88);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 15, 25, 0.9);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 200;
   transition: opacity 0.2s ease;
+  pointer-events: auto;
+  padding: 16px;
 }
 
 .modal-overlay.hidden {
@@ -260,7 +327,7 @@ body {
   border: 2px solid #00ffff;
   border-radius: 12px;
   padding: 20px 18px;
-  width: 320px;
+  width: min(340px, 92vw);
   box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(0, 255, 255, 0.1);
   color: #fff;
 }
@@ -273,7 +340,7 @@ body {
 }
 
 .diag-glitch {
-  font-size: 11px;
+  font-size: clamp(9px, 2.8vw, 11px);
   color: #00ffff;
   text-shadow: 0 0 8px #00ffff;
   letter-spacing: 0.5px;
@@ -283,9 +350,15 @@ body {
   background: none;
   border: none;
   color: #ff4477;
-  font-size: 20px;
+  font-size: 26px;
   cursor: pointer;
   line-height: 1;
+  padding: 6px 10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .diag-subtitle {
@@ -312,7 +385,8 @@ body {
   align-items: center;
   cursor: pointer;
   position: relative;
-  padding: 6px 4px;
+  padding: 8px 6px;
+  min-height: 44px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.03);
 }
@@ -325,17 +399,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 210px;
+  max-width: 72%;
 }
 
 .diag-name {
-  font-size: 10px;
+  font-size: clamp(9px, 2.6vw, 10px);
   color: #ffffff;
 }
 
 .diag-desc {
   font-family: 'VT323', monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: #88aacc;
   line-height: 1.2;
 }
@@ -351,10 +425,10 @@ body {
 .slider {
   position: relative;
   display: inline-block;
-  width: 42px;
-  height: 22px;
+  width: 44px;
+  height: 24px;
   background-color: #2b3345;
-  border-radius: 22px;
+  border-radius: 24px;
   transition: 0.25s;
   flex-shrink: 0;
   border: 1px solid #455577;
@@ -363,8 +437,8 @@ body {
 .slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
+  height: 18px;
+  width: 18px;
   left: 2px;
   bottom: 2px;
   background-color: #8899bb;
@@ -393,6 +467,7 @@ input:checked + .slider:before {
   font-size: 10px;
   width: 100%;
   box-shadow: 0 3px 0 #004455;
+  min-height: 44px;
 }
 
 .diag-btn:hover {

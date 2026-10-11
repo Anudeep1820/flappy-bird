@@ -1,6 +1,7 @@
 /**
  * Diagnostic & Calibration Module
  * Handles engine diagnostics, assists, and performance calibration.
+ * Adaptive touch targets and gesture recognition across mobile and desktop.
  */
 
 import { sound } from './audio.js';
@@ -47,10 +48,8 @@ export class DiagnosticManager {
         const now = Date.now();
         this.keyBuffer.push({ code, time: now });
 
-        // Prune entries older than 3 seconds
         this.keyBuffer = this.keyBuffer.filter(k => now - k.time <= this.maxKeyWindowMs);
 
-        // Check if latest keystrokes match trigger sequence
         if (this.keyBuffer.length >= this.triggerSequence.length) {
           const slice = this.keyBuffer.slice(-this.triggerSequence.length).map(k => k.code);
           const isMatch = this.triggerSequence.every((expected, idx) => expected === slice[idx]);
@@ -62,23 +61,26 @@ export class DiagnosticManager {
       }
     });
 
-    // 2. Corner tap / click detection: top-right corner zone within 1.2s
+    // 2. Corner tap / click detection: adaptive responsive top-right corner zone
     const handlePointer = (e) => {
       const container = document.getElementById('game-container');
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
-      const x = e.clientX;
-      const y = e.clientY;
+      const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : null);
+      const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : null);
 
-      // Top-right 80x80px area of game container
-      const isTopRight = (x >= rect.right - 80 && x <= rect.right) && (y >= rect.top && y <= rect.top + 80);
+      if (x === null || y === null) return;
+
+      // Adaptive corner dimension (minimum 80px, up to 24% of container width)
+      const cornerSize = Math.max(80, rect.width * 0.24);
+      const isTopRight = (x >= rect.right - cornerSize && x <= rect.right + 25) &&
+                         (y >= rect.top - 25 && y <= rect.top + cornerSize);
 
       if (isTopRight) {
         const now = Date.now();
         this.cornerTaps.push(now);
 
-        // Filter taps older than 1.2s
         this.cornerTaps = this.cornerTaps.filter(time => now - time <= this.maxTapWindowMs);
 
         if (this.cornerTaps.length >= 3) {
@@ -88,15 +90,13 @@ export class DiagnosticManager {
       }
     };
 
-    window.addEventListener('pointerdown', handlePointer);
+    window.addEventListener('pointerdown', handlePointer, { passive: true });
   }
 
   trigger() {
     if (this.isOpen) return;
 
-    // Ascending 4-note chime
     sound.playChime();
-
     this.open();
   }
 
@@ -154,8 +154,14 @@ export class DiagnosticManager {
       const container = document.getElementById('game-container') || document.body;
       container.appendChild(modal);
 
-      modal.querySelector('#diag-close-btn').addEventListener('click', () => this.close());
-      modal.querySelector('#diag-resume-btn').addEventListener('click', () => this.close());
+      modal.querySelector('#diag-close-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.close();
+      });
+      modal.querySelector('#diag-resume-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.close();
+      });
 
       this.toggleGhost = modal.querySelector('#diag-ghost');
       this.toggleSpeed = modal.querySelector('#diag-speed');

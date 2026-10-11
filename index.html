@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1017">
   <title>Flappy Bird Arcade</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,7 +22,7 @@
         <span class="logo-bird">BIRD</span>
       </div>
       <div class="tap-instruction">
-        <span class="key-hint">[SPACE]</span> or <span class="tap-hint">TAP SCREEN</span> to Flap
+        <span class="desktop-hint">[SPACE] or </span><span class="tap-hint">TAP TO FLAP</span>
       </div>
     </div>
 
@@ -43,6 +47,7 @@
         </div>
       </div>
       <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+      <div class="restart-hint">Tap anywhere to restart</div>
     </div>
   </div>
 
