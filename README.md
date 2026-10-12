@@ -33,11 +33,6 @@ A classic retro arcade Flappy Bird game built with modern web technologies: HTML
 ## 🔐 Admin Portal
 
 Access the administrator console at `/admin.html`:
-- **Default Passcode**: `admin1820` (customizable via `ADMIN_PASSCODE` environment variable).
-- **Features**:
-  - Live session telemetry: see who played, what devices/browsers they used, and their high scores.
-  - Overall metrics: total players, total games played, global high score, mobile traffic %.
-  - Scoreboard moderation: delete entries with one click.
 
 ---
 
