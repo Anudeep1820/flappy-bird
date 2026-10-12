@@ -9,6 +9,7 @@ import { PipeManager } from './pipes.js';
 import { sound } from './audio.js';
 import { Flags, DiagnosticManager } from './diagnostics.js';
 import { leaderboardClient } from './leaderboard.js';
+import { SkinsManager } from './skins.js';
 
 class Game {
   constructor() {
@@ -46,7 +47,11 @@ class Game {
     this.submitScoreBtn = document.getElementById('submit-score-btn');
     this.submitStatusMsg = document.getElementById('submit-status-msg');
 
-    // States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'GAMEOVER'
+    // Skins UI
+    this.skinsBtnTop = document.getElementById('skins-btn-top');
+    this.skinsBtnOver = document.getElementById('skins-btn-over');
+
+    // States: 'IDLE', 'PLAYING', 'PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'PAUSED_SKINS', 'GAMEOVER'
     this.state = 'IDLE';
     this.previousState = 'IDLE';
     this.score = 0;
@@ -58,6 +63,14 @@ class Game {
     // Entities
     this.bird = new Bird(this.width, this.height);
     this.pipes = new PipeManager(this.width, this.height, this.groundHeight);
+
+    // Skins Manager
+    this.skinsManager = new SkinsManager({
+      onSkinChange: (skin) => this.bird.setSkin(skin),
+      onOpen: () => this.handleSkinsOpen(),
+      onClose: () => this.handleSkinsClose()
+    });
+    this.bird.setSkin(this.skinsManager.getActiveSkin());
 
     // Visuals & Parallax
     this.groundOffset = 0;
@@ -99,6 +112,7 @@ class Game {
       if (e.key === 'Escape') {
         if (this.state === 'PAUSED_LEADERBOARD') this.closeLeaderboard();
         if (this.state === 'PAUSED_SUBMIT') this.closeSubmitModal();
+        if (this.state === 'PAUSED_SKINS') this.skinsManager.close();
         return;
       }
 
@@ -114,8 +128,8 @@ class Game {
     // 2. Touch / Pointer Controls across all screen zones
     const onActionPointer = (e) => {
       // Ignore clicks inside open modal overlays or buttons
-      if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT'].includes(this.state)) return;
-      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal') || e.target.closest('#submit-modal')) return;
+      if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'PAUSED_SKINS'].includes(this.state)) return;
+      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal') || e.target.closest('#submit-modal') || e.target.closest('#skins-modal')) return;
       if (e.target.closest('#top-bar-overlay')) return;
       if (e.target.closest('.gameover-actions button')) return;
 
@@ -184,7 +198,21 @@ class Game {
       });
     }
 
-    // 6. Responsive Resize & Orientation Change
+    // 6. Skins Locker Modal Triggers
+    if (this.skinsBtnTop) {
+      this.skinsBtnTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.skinsManager.open();
+      });
+    }
+    if (this.skinsBtnOver) {
+      this.skinsBtnOver.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.skinsManager.open();
+      });
+    }
+
+    // 7. Responsive Resize & Orientation Change
     const handleResize = () => {
       this.setupDPI();
     };
@@ -221,6 +249,16 @@ class Game {
   }
 
   handleDiagClose() {
+    this.state = this.previousState;
+    this.lastTime = performance.now();
+  }
+
+  handleSkinsOpen() {
+    this.previousState = this.state;
+    this.state = 'PAUSED_SKINS';
+  }
+
+  handleSkinsClose() {
     this.state = this.previousState;
     this.lastTime = performance.now();
   }
@@ -344,7 +382,7 @@ class Game {
     sound.playHit();
     this.shakeFrames = 14;
 
-    if (this.topBarOverlay) this.topBarOverlay.style.display = 'block';
+    if (this.topBarOverlay) this.topBarOverlay.style.display = 'flex';
 
     // Log gameplay telemetry immediately
     leaderboardClient.logGamePlayed(this.score);
@@ -391,7 +429,7 @@ class Game {
 
     if (this.gameoverOverlay) this.gameoverOverlay.classList.add('hidden');
     if (this.startOverlay) this.startOverlay.classList.remove('hidden');
-    if (this.topBarOverlay) this.topBarOverlay.style.display = 'block';
+    if (this.topBarOverlay) this.topBarOverlay.style.display = 'flex';
 
     this.state = 'IDLE';
   }
@@ -437,7 +475,7 @@ class Game {
   }
 
   update(dt) {
-    if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT'].includes(this.state)) return;
+    if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'PAUSED_SKINS'].includes(this.state)) return;
 
     const speedMult = Flags.superSpeed ? 2.5 : 1.0;
     const scrollDelta = 2.4 * speedMult;

@@ -1,5 +1,6 @@
 /**
- * Bird entity handling physics, rotation, flap animation, and visual states.
+ * Bird entity handling physics, rotation, flap animation, custom skins,
+ * accessories, and Ghost Mode visual states.
  */
 
 export class Bird {
@@ -10,7 +11,23 @@ export class Bird {
     this.width = 34;
     this.height = 24;
 
+    this.skin = null;
+    this.customImageObj = null;
+
     this.reset();
+  }
+
+  setSkin(skin) {
+    this.skin = skin;
+    if (skin && skin.customImage) {
+      const img = new Image();
+      img.src = skin.customImage;
+      img.onload = () => {
+        this.customImageObj = img;
+      };
+    } else {
+      this.customImageObj = null;
+    }
   }
 
   reset() {
@@ -97,53 +114,76 @@ export class Bird {
       ctx.stroke();
     }
 
-    // 1. Main Body
-    ctx.fillStyle = '#ffcf10';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#543847';
-    ctx.stroke();
+    const skin = this.skin || {};
+    const bodyColor = skin.bodyColor || '#ffcf10';
+    const bellyColor = skin.bellyColor || '#fff4a3';
+    const wingColor = skin.wingColor || '#ffffff';
+    const beakColor = skin.beakColor || '#f85800';
+    const outlineColor = skin.outlineColor || '#543847';
 
-    // 2. Belly Accent
-    ctx.fillStyle = '#fff4a3';
-    ctx.beginPath();
-    ctx.ellipse(-2, 3, this.width / 3, this.height / 3.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Check if custom uploaded user image exists
+    if (this.customImageObj && this.customImageObj.complete && this.customImageObj.naturalWidth > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(this.customImageObj, -this.width / 2, -this.height / 2, this.width, this.height);
+      ctx.restore();
 
-    // 3. Eye
-    const eyeX = 6;
-    const eyeY = -4;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(eyeX, eyeY, 5.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#543847';
-    ctx.lineWidth = 1.8;
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = outlineColor;
+      ctx.stroke();
+    } else {
+      // 1. Main Body
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = outlineColor;
+      ctx.stroke();
 
-    // Pupil
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(eyeX + 2, eyeY, 2.5, 0, Math.PI * 2);
-    ctx.fill();
+      // 2. Belly Accent
+      ctx.fillStyle = bellyColor;
+      ctx.beginPath();
+      ctx.ellipse(-2, 3, this.width / 3, this.height / 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Eye catch-light
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(eyeX + 1.2, eyeY - 1.2, 1.2, 0, Math.PI * 2);
-    ctx.fill();
+      // 3. Eye
+      const eyeX = 6;
+      const eyeY = -4;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
 
-    // 4. Beak (Orange)
-    ctx.fillStyle = '#f85800';
+      // Pupil
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(eyeX + 2, eyeY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eye catch-light
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(eyeX + 1.2, eyeY - 1.2, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 4. Beak (Orange / Custom Color)
+    ctx.fillStyle = beakColor;
     ctx.beginPath();
     ctx.moveTo(8, 0);
     ctx.lineTo(17, 3);
     ctx.lineTo(8, 7);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#543847';
+    ctx.strokeStyle = outlineColor;
     ctx.lineWidth = 1.6;
     ctx.stroke();
 
@@ -151,7 +191,7 @@ export class Bird {
     ctx.beginPath();
     ctx.moveTo(9, 3.5);
     ctx.lineTo(16, 3.5);
-    ctx.strokeStyle = '#543847';
+    ctx.strokeStyle = outlineColor;
     ctx.lineWidth = 1.2;
     ctx.stroke();
 
@@ -173,15 +213,81 @@ export class Bird {
     ctx.save();
     ctx.translate(-7, 1 + wingOffsetY);
     ctx.rotate(wingTilt);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = wingColor;
     ctx.beginPath();
     ctx.ellipse(0, 0, 7, 5, -0.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#543847';
+    ctx.strokeStyle = outlineColor;
     ctx.lineWidth = 1.8;
     ctx.stroke();
     ctx.restore();
 
+    // 6. Draw Equipped Accessory
+    this.drawAccessory(ctx, skin.accessory);
+
     ctx.restore();
+  }
+
+  drawAccessory(ctx, accessory) {
+    if (!accessory || accessory === 'none') return;
+
+    if (accessory === 'sunglasses') {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(4, -7, 13, 6);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(4, -7, 13, 6);
+
+      // White glare line
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillRect(6, -6, 2, 2);
+      ctx.fillRect(12, -6, 2, 2);
+    } else if (accessory === 'crown') {
+      ctx.fillStyle = '#ffd700';
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-6, -11);
+      ctx.lineTo(-8, -19);
+      ctx.lineTo(-2, -14);
+      ctx.lineTo(3, -21);
+      ctx.lineTo(8, -14);
+      ctx.lineTo(14, -19);
+      ctx.lineTo(12, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Ruby jewel
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(3, -15, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (accessory === 'halo') {
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#fde047';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.ellipse(2, -17, 12, 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (accessory === 'bow') {
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(-4, -12, 4, 0, Math.PI * 2);
+      ctx.arc(6, -12, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe4e6';
+      ctx.beginPath();
+      ctx.arc(1, -12, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (accessory === 'cap') {
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.ellipse(2, -10, 12, 5, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(6, -9, 10, 2.5);
+    }
   }
 }

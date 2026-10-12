@@ -17,6 +17,9 @@
 
     <!-- Top Navigation Bar (Positioned safely away from tap zone) -->
     <div id="top-bar-overlay" class="top-bar-overlay">
+      <button id="skins-btn-top" class="top-pill-btn skins-pill" aria-label="Skins Locker">
+        🎨 SKINS
+      </button>
       <button id="leaderboard-btn-top" class="top-pill-btn" aria-label="Global Leaderboard">
         🏆 RANKINGS
       </button>
@@ -58,7 +61,10 @@
       <div class="gameover-actions">
         <button id="restart-btn" class="arcade-btn primary-action">PLAY AGAIN</button>
         <button id="open-submit-modal-btn" class="arcade-btn sub-btn">✍️ POST SCORE</button>
-        <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANKINGS</button>
+        <div class="sub-btn-row">
+          <button id="skins-btn-over" class="arcade-btn sub-btn">🎨 SKINS</button>
+          <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANKINGS</button>
+        </div>
       </div>
       <div class="restart-hint">Tap anywhere to restart</div>
     </div>
@@ -92,6 +98,85 @@
         <div class="leaderboard-scroll">
           <div id="leaderboard-list" class="leaderboard-list">
             <div style="text-align: center; color: #88aacc; padding: 20px; font-size: 11px;">Loading rankings...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI Overlay: Skins Locker & Custom Creator Modal -->
+    <div id="skins-modal" class="modal-overlay hidden">
+      <div class="skins-modal-content">
+        <div class="modal-header">
+          <span>🎨 SKINS LOCKER</span>
+          <button id="skins-close-btn" class="close-x">&times;</button>
+        </div>
+
+        <!-- Tab Controls -->
+        <div class="skins-tabs">
+          <button id="tab-presets-btn" class="skins-tab active">PRESETS</button>
+          <button id="tab-custom-btn" class="skins-tab">CREATOR</button>
+        </div>
+
+        <!-- Presets Grid View -->
+        <div id="skins-presets-view" class="skins-tab-view">
+          <div id="skins-grid" class="skins-grid">
+            <!-- Rendered by SkinsManager -->
+          </div>
+        </div>
+
+        <!-- Custom Skin Creator View -->
+        <div id="skins-custom-view" class="skins-tab-view hidden">
+          <!-- Live Preview Canvas -->
+          <div class="custom-preview-wrapper">
+            <canvas id="custom-preview-canvas" width="120" height="90"></canvas>
+            <span class="preview-caption">LIVE PREVIEW</span>
+          </div>
+
+          <!-- Color Customizer -->
+          <div class="custom-section-title">COLORS</div>
+          <div class="custom-colors-grid">
+            <div class="color-picker-item">
+              <label for="skin-color-body">Body</label>
+              <input type="color" id="skin-color-body" value="#38bdf8">
+            </div>
+            <div class="color-picker-item">
+              <label for="skin-color-belly">Belly</label>
+              <input type="color" id="skin-color-belly" value="#bae6fd">
+            </div>
+            <div class="color-picker-item">
+              <label for="skin-color-wing">Wing</label>
+              <input type="color" id="skin-color-wing" value="#ffffff">
+            </div>
+            <div class="color-picker-item">
+              <label for="skin-color-beak">Beak</label>
+              <input type="color" id="skin-color-beak" value="#f97316">
+            </div>
+          </div>
+
+          <!-- Accessory Selector -->
+          <div class="custom-section-title">GEAR & ACCESSORIES</div>
+          <div id="accessory-chips" class="accessory-chips">
+            <button class="chip-btn active" data-accessory="none">None</button>
+            <button class="chip-btn" data-accessory="sunglasses">🕶️ Shades</button>
+            <button class="chip-btn" data-accessory="crown">👑 Crown</button>
+            <button class="chip-btn" data-accessory="halo">😇 Halo</button>
+            <button class="chip-btn" data-accessory="bow">🎀 Bow</button>
+            <button class="chip-btn" data-accessory="cap">🧢 Cap</button>
+          </div>
+
+          <!-- Photo / Custom Sprite Upload -->
+          <div class="custom-section-title">PHOTO SPRITE</div>
+          <div class="custom-upload-box">
+            <label class="file-upload-label" for="skin-image-upload">
+              <span>📁 Upload Photo / Sprite</span>
+              <input type="file" id="skin-image-upload" accept="image/*" class="file-input-hidden">
+            </label>
+            <button id="remove-image-btn" class="chip-btn danger-chip hidden">✕ Remove Photo</button>
+          </div>
+
+          <!-- Save / Equip -->
+          <div class="custom-actions">
+            <button id="save-custom-skin-btn" class="arcade-btn submit-btn">SAVE & EQUIP</button>
           </div>
         </div>
       </div>
