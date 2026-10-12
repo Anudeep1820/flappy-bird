@@ -393,6 +393,13 @@ class Game {
     this.handleMpOpen();
     if (this.mpModal) this.mpModal.classList.remove('hidden');
 
+    this.network.ensureReady();
+    if (this.mpStatusPill) {
+      const isOnline = this.network.isConnected;
+      this.mpStatusPill.className = `mp-status-pill ${isOnline ? 'online' : 'offline'}`;
+      this.mpStatusPill.textContent = isOnline ? (this.network.mode === 'P2P' ? '● P2P CLOUD' : '● SOCKET.IO') : '○ OFFLINE';
+    }
+
     if (this.network.currentRoom) {
       this.switchMpView('room');
       this.renderRoomPlayers();
@@ -487,7 +494,7 @@ class Game {
     this.network.onStatusChanged = (online, errMsg) => {
       if (this.mpStatusPill) {
         this.mpStatusPill.className = `mp-status-pill ${online ? 'online' : 'offline'}`;
-        this.mpStatusPill.textContent = online ? '● ONLINE' : '○ OFFLINE';
+        this.mpStatusPill.textContent = online ? (this.network.mode === 'P2P' ? '● P2P CLOUD' : '● SOCKET.IO') : '○ OFFLINE';
       }
     };
 
@@ -854,12 +861,12 @@ class Game {
     this.powers.reset();
     this.particles = [];
 
-    // Reset PRNG seed if solo
+    // Reset PRNG seed (fresh seed for solo, synchronized room seed for multiplayer)
     if (!this.network || !this.network.currentRoom) {
       this.currentSeed = Math.floor(Math.random() * 900000) + 100000;
-      this.currentPrng = createMulberry32(this.currentSeed);
-      this.pipes.setPrng(this.currentPrng);
     }
+    this.currentPrng = createMulberry32(this.currentSeed);
+    this.pipes.setPrng(this.currentPrng);
 
     if (this.gameoverOverlay) this.gameoverOverlay.classList.add('hidden');
     if (this.startOverlay) this.startOverlay.classList.remove('hidden');
