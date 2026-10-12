@@ -1,7 +1,16 @@
 {
   "name": "flappy-bird",
   "version": "1.0.0",
-  "description": "Flappy Bird Arcade with Global Scoreboard and Admin Portal",
+  "description": "Flappy Bird Arcade with Multiplayer and Powers",
   "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "node server/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "socket.io": "^4.8.1"
+  },
   "private": true
 }

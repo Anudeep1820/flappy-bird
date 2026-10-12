@@ -93,25 +93,48 @@ export class Bird {
     };
   }
 
-  draw(ctx, flags) {
+  draw(ctx, flags, powers) {
     ctx.save();
 
     // Visual pass-through state: translucent cyan glow
-    if (flags && flags.ghostMode) {
-      ctx.globalAlpha = 0.45;
-      ctx.shadowColor = '#00ffff';
+    const hasShield = powers && powers.isShieldActive && powers.isShieldActive();
+    if ((flags && flags.ghostMode) || hasShield) {
+      ctx.globalAlpha = 0.65;
+      ctx.shadowColor = hasShield ? '#38bdf8' : '#00ffff';
       ctx.shadowBlur = 14;
     }
 
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
 
-    if (flags && flags.ghostMode) {
+    if ((flags && flags.ghostMode) || hasShield) {
       ctx.beginPath();
-      ctx.ellipse(0, 0, this.width / 2 + 5, this.height / 2 + 5, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = '#00ffff';
+      ctx.ellipse(0, 0, this.width / 2 + 6, this.height / 2 + 6, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = hasShield ? '#38bdf8' : '#00ffff';
       ctx.lineWidth = 2.5;
       ctx.stroke();
+    }
+
+    // Magnet power aura
+    if (powers && powers.isMagnetActive && powers.isMagnetActive()) {
+      ctx.beginPath();
+      ctx.arc(-this.width / 2 - 4, 0, 5, -Math.PI / 2, Math.PI / 2);
+      ctx.arc(this.width / 2 + 4, 0, 5, Math.PI / 2, -Math.PI / 2);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    }
+
+    // Multiplier badge
+    if (powers && powers.isMultiplierActive && powers.isMultiplierActive()) {
+      ctx.save();
+      ctx.font = 'bold 8px "Press Start 2P", monospace';
+      ctx.fillStyle = '#fbbf24';
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 6;
+      ctx.textAlign = 'center';
+      ctx.fillText('2X', 0, -this.height / 2 - 6);
+      ctx.restore();
     }
 
     const skin = this.skin || {};
@@ -289,5 +312,86 @@ export class Bird {
       ctx.fill();
       ctx.fillRect(6, -9, 10, 2.5);
     }
+  }
+
+  /**
+   * Render a remote peer as a ghost bird with dynamic skin and animation
+   */
+  drawGhostBird(ctx, { x, y, rotation, wingPhase, skin, isDead, powers }) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation || 0);
+
+    const s = skin || {};
+    const bodyColor = isDead ? '#64748b' : (s.bodyColor || '#ffcf10');
+    const bellyColor = isDead ? '#94a3b8' : (s.bellyColor || '#fff4a3');
+    const wingColor = isDead ? '#475569' : (s.wingColor || '#ffffff');
+    const beakColor = isDead ? '#64748b' : (s.beakColor || '#f85800');
+    const outlineColor = '#334155';
+
+    // Body
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = outlineColor;
+    ctx.stroke();
+
+    // Belly Accent
+    ctx.fillStyle = bellyColor;
+    ctx.beginPath();
+    ctx.ellipse(-2, 3, this.width / 3, this.height / 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    const eyeX = 6;
+    const eyeY = -4;
+    ctx.fillStyle = isDead ? '#000000' : '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (!isDead) {
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(eyeX + 2, eyeY, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Dead X eye
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(eyeX - 2, eyeY - 2); ctx.lineTo(eyeX + 2, eyeY + 2);
+      ctx.moveTo(eyeX + 2, eyeY - 2); ctx.lineTo(eyeX - 2, eyeY + 2);
+      ctx.stroke();
+    }
+
+    // Beak
+    ctx.fillStyle = beakColor;
+    ctx.beginPath();
+    ctx.moveTo(8, 0); ctx.lineTo(16, 3); ctx.lineTo(8, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wing
+    let wingOffsetY = 0;
+    if (wingPhase === 0) wingOffsetY = 3;
+    else if (wingPhase === 2) wingOffsetY = -3;
+
+    ctx.save();
+    ctx.translate(-7, 1 + wingOffsetY);
+    ctx.fillStyle = wingColor;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 7, 5, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Accessory
+    if (s.accessory && !isDead) {
+      this.drawAccessory(ctx, s.accessory);
+    }
+
+    ctx.restore();
   }
 }

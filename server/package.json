@@ -1,0 +1,15 @@
+{
+  "name": "flappy-bird-multiplayer-server",
+  "version": "1.0.0",
+  "description": "Real-time Multiplayer Socket.io Server for Flappy Bird",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "socket.io": "^4.8.1"
+  }
+}

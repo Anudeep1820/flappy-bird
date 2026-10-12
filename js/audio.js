@@ -123,6 +123,97 @@ class AudioController {
   }
 
   /**
+   * Retro Coin pickup chime: High 2-note sweet arpeggio (B5 -> E6)
+   */
+  playCoin() {
+    this.init();
+    if (!this.ctx || this.muted) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      [987.77, 1318.51].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const startTime = now + idx * 0.06;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.25, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.14);
+      });
+    } catch {
+      // Audio playback failsafe
+    }
+  }
+
+  /**
+   * Superpower activation fanfare: Ascending energizing triad chord
+   */
+  playPowerup() {
+    this.init();
+    if (!this.ctx || this.muted) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const startTime = now + idx * 0.05;
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.24, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.22);
+      });
+    } catch {
+      // Audio playback failsafe
+    }
+  }
+
+  /**
+   * Superpower expired cue: Descending alert tone
+   */
+  playPowerExpired() {
+    this.init();
+    if (!this.ctx || this.muted) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.16);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } catch {
+      // Audio playback failsafe
+    }
+  }
+
+  /**
    * Ascending retro 4-note arpeggio chime
    * Notes: C5 (523.25Hz), E5 (659.25Hz), G5 (783.99Hz), C6 (1046.50Hz)
    */

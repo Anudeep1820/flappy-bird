@@ -20,9 +20,16 @@
       <button id="skins-btn-top" class="top-pill-btn skins-pill" aria-label="Skins Locker">
         🎨 SKINS
       </button>
+      <button id="multiplayer-btn-top" class="top-pill-btn mp-pill" aria-label="Multiplayer Arena">
+        🌐 MULTI
+      </button>
       <button id="leaderboard-btn-top" class="top-pill-btn" aria-label="Global Leaderboard">
         🏆 RANKINGS
       </button>
+      <div id="coin-counter-top" class="coin-pill-badge" title="Total Coins Collected">
+        <span class="coin-icon">🪙</span>
+        <span id="coin-count-val">0</span>
+      </div>
     </div>
 
     <!-- UI Overlay: Start Screen -->
@@ -39,6 +46,37 @@
     <!-- UI Overlay: In-Game Score HUD -->
     <div id="hud-score" class="hud-score">0</div>
 
+    <!-- In-Run Superpowers HUD Bar -->
+    <div id="powers-hud" class="powers-hud">
+      <button id="power-btn-shield" class="power-hud-btn" data-power="shield" title="Shield (Key: 1)">
+        <span class="power-icon">🛡️</span>
+        <div class="power-labels">
+          <span class="power-name">SHIELD</span>
+          <span class="power-cost"><span class="power-cost-val">5</span>🪙</span>
+        </div>
+        <span class="power-key">[1]</span>
+        <span class="power-timer-badge">4.0s</span>
+      </button>
+      <button id="power-btn-magnet" class="power-hud-btn" data-power="magnet" title="Coin Magnet (Key: 2)">
+        <span class="power-icon">🧲</span>
+        <div class="power-labels">
+          <span class="power-name">MAGNET</span>
+          <span class="power-cost"><span class="power-cost-val">4</span>🪙</span>
+        </div>
+        <span class="power-key">[2]</span>
+        <span class="power-timer-badge">6.0s</span>
+      </button>
+      <button id="power-btn-multiplier" class="power-hud-btn" data-power="multiplier" title="2x Score (Key: 3)">
+        <span class="power-icon">⚡</span>
+        <div class="power-labels">
+          <span class="power-name">2X SCORE</span>
+          <span class="power-cost"><span class="power-cost-val">8</span>🪙</span>
+        </div>
+        <span class="power-key">[3]</span>
+        <span class="power-timer-badge">8.0s</span>
+      </button>
+    </div>
+
     <!-- UI Overlay: Game Over Screen -->
     <div id="gameover-overlay" class="ui-screen hidden">
       <div class="gameover-banner">GAME OVER</div>
@@ -50,6 +88,10 @@
         <div class="score-row">
           <span>BEST</span>
           <span id="high-score" class="score-val">0</span>
+        </div>
+        <div class="score-row">
+          <span>COINS</span>
+          <span id="final-coins" class="score-val" style="color: #fbbf24;">+0</span>
         </div>
         <div id="medal-container" class="medal-container">
           <span id="medal-label">MEDAL</span>
@@ -63,7 +105,8 @@
         <button id="open-submit-modal-btn" class="arcade-btn sub-btn">✍️ POST SCORE</button>
         <div class="sub-btn-row">
           <button id="skins-btn-over" class="arcade-btn sub-btn">🎨 SKINS</button>
-          <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANKINGS</button>
+          <button id="mp-btn-over" class="arcade-btn sub-btn">🌐 MULTI</button>
+          <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANK</button>
         </div>
       </div>
       <div class="restart-hint">Tap anywhere to restart</div>
@@ -181,7 +224,94 @@
         </div>
       </div>
     </div>
+
+    <!-- UI Overlay: Multiplayer Arena & Room Management Modal -->
+    <div id="mp-modal" class="modal-overlay hidden">
+      <div class="mp-modal-content">
+        <div class="modal-header">
+          <span>🌐 MULTIPLAYER ARENA</span>
+          <div class="mp-header-right">
+            <span id="mp-server-status-pill" class="mp-status-pill">● CHECKING</span>
+            <button id="mp-close-btn" class="close-x">&times;</button>
+          </div>
+        </div>
+
+        <!-- View 1: Public Lobby & Direct Join -->
+        <div id="mp-lobby-view" class="mp-view">
+          <div class="mp-actions-top">
+            <button id="mp-open-create-btn" class="arcade-btn mp-action-btn">➕ CREATE ROOM</button>
+            <button id="mp-refresh-rooms-btn" class="chip-btn mp-refresh-btn">🔄 Refresh</button>
+          </div>
+
+          <div class="mp-section-title">ACTIVE PUBLIC ROOMS</div>
+          <div id="mp-rooms-list" class="mp-rooms-list">
+            <div class="mp-empty-rooms">Loading rooms or offline...</div>
+          </div>
+
+          <div class="mp-section-title">JOIN VIA ROOM CODE</div>
+          <div class="mp-join-group">
+            <input type="text" id="mp-code-input" maxlength="5" placeholder="CODE (e.g. 7X9K2)" class="name-input mp-code-input" autocomplete="off" autocorrect="off">
+            <input type="password" id="mp-pass-input" maxlength="16" placeholder="PASSWORD (IF PRIVATE)" class="name-input mp-pass-input" autocomplete="off">
+            <button id="mp-join-submit-btn" class="arcade-btn submit-btn">JOIN ROOM</button>
+          </div>
+
+          <div id="mp-lobby-msg" class="mp-status-msg"></div>
+
+          <!-- Server URL configuration toggle -->
+          <div class="mp-server-config">
+            <button id="mp-toggle-server-settings" class="mp-link-btn">⚙️ Server Connection Settings</button>
+            <div id="mp-server-settings-box" class="mp-server-settings-box hidden">
+              <input type="text" id="mp-server-url-input" placeholder="http://localhost:3001 or Render URL" class="name-input mp-url-input">
+              <button id="mp-save-server-btn" class="chip-btn">SAVE SERVER</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Create Room Flow -->
+        <div id="mp-create-view" class="mp-view hidden">
+          <div class="mp-section-title">CREATE NEW ROOM</div>
+          <div class="mp-form-row">
+            <label class="mp-checkbox-label">
+              <input type="checkbox" id="mp-private-checkbox">
+              <span>Private Room (Requires Password)</span>
+            </label>
+          </div>
+          <div id="mp-create-pass-row" class="mp-form-row hidden">
+            <label for="mp-create-pass-input" class="mp-field-label">Room Password:</label>
+            <input type="password" id="mp-create-pass-input" maxlength="16" placeholder="ENTER ROOM PASSWORD" class="name-input">
+          </div>
+          <div class="mp-form-actions">
+            <button id="mp-confirm-create-btn" class="arcade-btn submit-btn">LAUNCH ROOM 🚀</button>
+            <button id="mp-cancel-create-btn" class="chip-btn" style="margin-top: 8px;">Back to Lobby</button>
+          </div>
+          <div id="mp-create-msg" class="mp-status-msg"></div>
+        </div>
+
+        <!-- View 3: Room Waiting Room / Lobby -->
+        <div id="mp-room-view" class="mp-view hidden">
+          <div class="mp-room-banner">
+            <span class="mp-room-code-label">ROOM:</span>
+            <span id="mp-room-code-val" class="mp-room-code-val">-----</span>
+            <button id="mp-copy-code-btn" class="chip-btn" title="Copy Room Code">📋 COPY</button>
+          </div>
+
+          <div class="mp-section-title">PLAYERS IN ROOM (<span id="mp-player-count">1</span>)</div>
+          <div id="mp-players-list" class="mp-players-list">
+            <!-- Player items populated dynamically -->
+          </div>
+
+          <div class="mp-room-footer">
+            <button id="mp-start-match-btn" class="arcade-btn primary-action">START MATCH 🚀</button>
+            <div id="mp-waiting-hint" class="mp-waiting-hint hidden">Waiting for host to launch...</div>
+            <button id="mp-leave-room-btn" class="chip-btn danger-chip" style="margin-top: 10px;">Leave Room</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- External Socket.io Client (with graceful offline fallback) -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
   <!-- Modular Game Scripts -->
   <script type="module" src="js/main.js"></script>

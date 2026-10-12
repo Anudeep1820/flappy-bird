@@ -13,8 +13,18 @@ export class PipeManager {
     this.pipeGap = 132;
     this.baseSpeed = 2.4;
     this.baseSpawnInterval = 100; // frames at 60fps
+    this.prng = null;
+    this.onSpawnPair = null;
 
     this.reset();
+  }
+
+  setPrng(prngFunc) {
+    this.prng = prngFunc;
+  }
+
+  setOnSpawnPair(callback) {
+    this.onSpawnPair = callback;
   }
 
   reset() {
@@ -58,29 +68,37 @@ export class PipeManager {
     } else {
       const minCenter = 60 + this.pipeGap / 2;
       const maxCenter = playableHeight - 60 - this.pipeGap / 2;
-      gapCenter = minCenter + Math.random() * (maxCenter - minCenter);
+      const rand = this.prng ? this.prng() : Math.random();
+      gapCenter = minCenter + rand * (maxCenter - minCenter);
     }
 
     const topHeight = gapCenter - this.pipeGap / 2;
     const bottomY = gapCenter + this.pipeGap / 2;
     const bottomHeight = playableHeight - bottomY;
 
+    const pipeX = this.canvasWidth + 10;
     this.pipes.push({
-      x: this.canvasWidth + 10,
+      x: pipeX,
       width: this.pipeWidth,
       topHeight: topHeight,
       bottomY: bottomY,
       bottomHeight: bottomHeight,
       passed: false
     });
+
+    // Notify coin spawner for centered coin placement
+    if (this.onSpawnPair) {
+      this.onSpawnPair(pipeX + this.pipeWidth / 2, gapCenter, this.pipeWidth);
+    }
   }
 
-  checkCollision(bird, flags) {
+  checkCollision(bird, flags, powers) {
     const playableHeight = this.canvasHeight - this.groundHeight;
     const bounds = bird.getBounds();
 
-    // Collision bypass check
-    if (flags && flags.ghostMode) {
+    // Invulnerability check (Ghost Mode or Active Shield Superpower)
+    const hasShield = powers && powers.isShieldActive && powers.isShieldActive();
+    if ((flags && flags.ghostMode) || hasShield) {
       return false;
     }
 
