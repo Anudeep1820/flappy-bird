@@ -47,6 +47,18 @@
   ],
   "sessions": [
     {
+      "sessionId": "sess_1791864861429_ioxcbw",
+      "playerName": "Guest",
+      "device": "Mac Desktop",
+      "browser": "Chrome",
+      "resolution": "1920x929",
+      "isMobile": false,
+      "firstSeen": "2026-10-13T04:14:22.631Z",
+      "lastSeen": "2026-10-13T04:14:22.631Z",
+      "gamesPlayed": 1,
+      "highestScore": 0
+    },
+    {
       "sessionId": "sess_1791859295302_0vnmjx",
       "playerName": "Guest",
       "device": "Windows PC",
