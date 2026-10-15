@@ -155,9 +155,19 @@ html, body {
   padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
 }
 
-.ui-screen.hidden {
-  opacity: 0;
-  pointer-events: none;
+.ui-screen.hidden,
+.hidden {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.ui-screen.hidden *,
+.hidden * {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 /* Start Overlay */
@@ -411,7 +421,16 @@ html, body {
 }
 
 .modal-overlay.hidden {
-  display: none;
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.modal-overlay.hidden * {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 .modal-header {

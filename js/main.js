@@ -265,14 +265,14 @@ class Game {
 
     // 2. Touch / Pointer Controls across all screen zones
     const onActionPointer = (e) => {
-      // Ignore clicks inside open modal overlays or buttons
-      if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'PAUSED_SKINS', 'PAUSED_MP'].includes(this.state)) return;
-      if (e.target.closest('#diag-modal') || e.target.closest('#leaderboard-modal') || e.target.closest('#submit-modal') || e.target.closest('#skins-modal') || e.target.closest('#mp-modal')) return;
+      // Ignore clicks inside open modal overlays or top-bar/powers HUD
+      if (['PAUSED_DIAG', 'PAUSED_LEADERBOARD', 'PAUSED_SUBMIT', 'PAUSED_SKINS', 'PAUSED_MP', 'PAUSED_ACHIEVEMENTS'].includes(this.state)) return;
+      if (e.target.closest('.modal-overlay:not(.hidden)')) return;
       if (e.target.closest('#top-bar-overlay')) return;
       if (e.target.closest('#powers-hud')) return;
-      if (e.target.closest('.gameover-actions button')) return;
 
       if (this.state === 'GAMEOVER') {
+        if (e.target.closest('.gameover-actions button')) return;
         const timeSinceGameOver = performance.now() - this.gameOverTime;
         if (timeSinceGameOver > 400) {
           this.restartGame();
@@ -293,7 +293,9 @@ class Game {
     if (this.restartBtn) {
       this.restartBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.restartGame();
+        if (this.state === 'GAMEOVER') {
+          this.restartGame();
+        }
       });
     }
 
@@ -307,7 +309,9 @@ class Game {
     if (this.leaderboardBtnOver) {
       this.leaderboardBtnOver.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openLeaderboard();
+        if (this.state === 'GAMEOVER') {
+          this.openLeaderboard();
+        }
       });
     }
     if (this.leaderboardCloseBtn) {
@@ -321,7 +325,9 @@ class Game {
     if (this.openSubmitModalBtn) {
       this.openSubmitModalBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openSubmitModal();
+        if (this.state === 'GAMEOVER') {
+          this.openSubmitModal();
+        }
       });
     }
     if (this.submitCloseBtn) {
@@ -347,7 +353,9 @@ class Game {
     if (this.skinsBtnOver) {
       this.skinsBtnOver.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.skinsManager.open();
+        if (this.state === 'GAMEOVER') {
+          this.skinsManager.open();
+        }
       });
     }
 
@@ -361,7 +369,9 @@ class Game {
     if (this.mpBtnOver) {
       this.mpBtnOver.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openMultiplayerModal();
+        if (this.state === 'GAMEOVER') {
+          this.openMultiplayerModal();
+        }
       });
     }
     if (this.mpCloseBtn) {
@@ -390,7 +400,9 @@ class Game {
     if (this.achievementsBtnOver) {
       this.achievementsBtnOver.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openAchievementsModal();
+        if (this.state === 'GAMEOVER') {
+          this.openAchievementsModal();
+        }
       });
     }
     if (this.achievementsCloseBtn) {
@@ -404,7 +416,9 @@ class Game {
     if (this.shareScoreBtn) {
       this.shareScoreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.shareScore();
+        if (this.state === 'GAMEOVER') {
+          this.shareScore();
+        }
       });
     }
 
