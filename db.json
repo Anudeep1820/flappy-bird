@@ -47,14 +47,14 @@
   ],
   "sessions": [
     {
-      "sessionId": "sess_1792076301272_v38fxb",
+      "sessionId": "sess_1792076301278_ehulh9",
       "playerName": "Guest",
       "device": "Linux Desktop",
       "browser": "Chrome",
       "resolution": "1280x800",
       "isMobile": false,
-      "firstSeen": "2026-10-15T14:58:21.620Z",
-      "lastSeen": "2026-10-15T14:58:21.620Z",
+      "firstSeen": "2026-10-15T14:58:21.994Z",
+      "lastSeen": "2026-10-15T14:58:21.994Z",
       "gamesPlayed": 1,
       "highestScore": 0
     },
