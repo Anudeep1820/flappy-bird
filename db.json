@@ -9,14 +9,6 @@
       "date": "2026-10-15T14:56:18.426Z"
     },
     {
-      "id": "score_1792076840604_eqhs1",
-      "name": "ANU",
-      "score": 154,
-      "medal": "platinum",
-      "sessionId": "sess_1791702143123_v53vzc",
-      "date": "2026-10-15T15:07:20.604Z"
-    },
-    {
       "id": "score_1791712033168_buq9p",
       "name": "BATMAN",
       "score": 53,
@@ -140,13 +132,13 @@
     },
     {
       "sessionId": "sess_1791702143123_v53vzc",
-      "playerName": "BATMAN",
+      "playerName": "ANU",
       "device": "Android Mobile",
       "browser": "Chrome",
       "resolution": "360x691",
       "isMobile": true,
       "firstSeen": "2026-10-11T09:45:10.401Z",
-      "lastSeen": "2026-10-15T15:07:04.950Z",
+      "lastSeen": "2026-10-15T15:07:21.742Z",
       "gamesPlayed": 24,
       "highestScore": 154
     },
