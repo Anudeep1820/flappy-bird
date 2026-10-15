@@ -1379,3 +1379,325 @@ input:checked + .slider:before {
   margin-top: 6px;
 }
 
+
+/* ==========================================================================
+   AUDIO & TROPHIES TOP BAR CONTROLS
+   ========================================================================== */
+.audio-pill, .ach-pill {
+  padding: 5px 8px;
+  min-width: 32px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.audio-pill.muted {
+  opacity: 0.6;
+  filter: grayscale(1);
+}
+
+/* ==========================================================================
+   SHARE SCORE & ACTION DUO
+   ========================================================================== */
+.main-action-duo {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.main-action-duo .arcade-btn {
+  flex: 1;
+}
+
+.share-btn {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #60a5fa;
+  box-shadow: 0 4px 0 #1e3a8a;
+}
+
+.share-btn:active {
+  box-shadow: 0 1px 0 #1e3a8a;
+  transform: translateY(3px);
+}
+
+/* ==========================================================================
+   ACHIEVEMENT FLOATING TOAST BANNER
+   ========================================================================== */
+.achievement-toast {
+  position: absolute;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-30px);
+  background: rgba(15, 23, 42, 0.94);
+  border: 2px solid #fbbf24;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.4);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  min-width: 250px;
+  max-width: 90%;
+}
+
+.achievement-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.achievement-toast.hide {
+  transform: translateX(-50%) translateY(-25px);
+  opacity: 0;
+}
+
+.toast-icon {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7.5px;
+  color: #fbbf24;
+  letter-spacing: 0.5px;
+}
+
+.toast-desc {
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  color: #f8fafc;
+  line-height: 1.1;
+}
+
+/* ==========================================================================
+   ACHIEVEMENTS MODAL / TROPHY ROOM
+   ========================================================================== */
+.achievements-modal-content {
+  background: #0f172a;
+  border: 3px solid #fbbf24;
+  border-radius: 12px;
+  padding: 16px;
+  width: 90%;
+  max-width: 330px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.achievements-list-container {
+  overflow-y: auto;
+  flex: 1;
+  margin-top: 10px;
+  padding-right: 4px;
+}
+
+.ach-summary-bar {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.ach-summary-text {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7.5px;
+  color: #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ach-summary-text strong {
+  color: #fbbf24;
+}
+
+.ach-progress-outer {
+  background: #090d16;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.ach-progress-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.ach-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ach-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  padding: 8px 10px;
+  transition: border-color 0.2s ease;
+}
+
+.ach-card.unlocked {
+  border-color: #fbbf24;
+  background: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.12);
+}
+
+.ach-card.locked {
+  opacity: 0.55;
+  filter: grayscale(0.8);
+}
+
+.ach-card-icon {
+  font-size: 22px;
+  min-width: 30px;
+  text-align: center;
+}
+
+.ach-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ach-card-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7px;
+  color: #38bdf8;
+}
+
+.ach-card.unlocked .ach-card-title {
+  color: #fbbf24;
+}
+
+.ach-card-desc {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.1;
+}
+
+.ach-card-status {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 6px;
+  color: #64748b;
+}
+
+.ach-card.unlocked .ach-card-status {
+  color: #4ade80;
+}
+
+/* ==========================================================================
+   MULTIPLAYER PODIUM MODAL
+   ========================================================================== */
+.podium-modal-content {
+  background: #0f172a;
+  border: 3px solid #38bdf8;
+  border-radius: 12px;
+  padding: 16px;
+  width: 90%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 189, 248, 0.25);
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.podium-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 11px;
+  color: #fbbf24;
+}
+
+.podium-subtitle {
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  color: #94a3b8;
+  text-align: center;
+  margin: 6px 0 12px 0;
+}
+
+.podium-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.podium-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1e293b;
+  border: 2px solid #334155;
+}
+
+.podium-row.rank-1 {
+  border-color: #fbbf24;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, #1e293b 100%);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+}
+
+.podium-row.rank-2 {
+  border-color: #94a3b8;
+}
+
+.podium-row.rank-3 {
+  border-color: #b45309;
+}
+
+.podium-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.podium-medal {
+  font-size: 18px;
+  min-width: 24px;
+}
+
+.podium-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7.5px;
+  color: #f8fafc;
+}
+
+.podium-row.rank-1 .podium-name {
+  color: #fbbf24;
+}
+
+.podium-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 9px;
+  color: #38bdf8;
+}
+
+.podium-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

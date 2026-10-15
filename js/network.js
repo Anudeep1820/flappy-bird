@@ -30,6 +30,11 @@ export class NetworkManager {
     this.onPlayerLeft = null;
     this.onHostChanged = null;
     this.onStatusChanged = null;
+    this.onMatchFinished = null;
+
+    // Match tracking
+    this.myDead = false;
+    this.myFinalScore = 0;
 
     this.init();
   }
@@ -121,6 +126,11 @@ export class NetworkManager {
       this.socket.on('remote_player_update', (data) => {
         if (data.id === this.myId) return;
         this.handleRemoteUpdate(data);
+      });
+
+      this.socket.on('remote_player_action', (data) => {
+        if (data.id === this.myId) return;
+        this.handleRemoteAction(data);
       });
     } catch {
       this.initP2P();
@@ -380,6 +390,7 @@ export class NetworkManager {
           ...data
         }, conn.peer);
       } else if (data.type === 'player_action') {
+        this.handleRemoteAction(data);
         this.broadcastToGuests({
           type: 'remote_player_action',
           ...data
@@ -510,9 +521,17 @@ export class NetworkManager {
                 this.currentRoom.seed = data.seed;
                 this.currentRoom.state = 'PLAYING';
               }
+              this.myDead = false;
+              this.myFinalScore = 0;
+              for (const p of this.remotePlayers.values()) {
+                p.isDead = false;
+                p.score = 0;
+              }
               if (this.onGameStarted) this.onGameStarted(data);
             } else if (data.type === 'remote_player_update') {
               this.handleRemoteUpdate(data);
+            } else if (data.type === 'remote_player_action') {
+              this.handleRemoteAction(data);
             }
           });
 
@@ -567,6 +586,61 @@ export class NetworkManager {
     }
   }
 
+  handleRemoteAction(data) {
+    if (!data) return;
+    if (data.action === 'die') {
+      const p = this.remotePlayers.get(data.id);
+      if (p) {
+        p.isDead = true;
+        if (typeof data.score === 'number') p.score = data.score;
+      }
+      this.checkMatchFinished();
+    }
+  }
+
+  checkMatchFinished() {
+    if (!this.currentRoom || this.currentRoom.state !== 'PLAYING') return;
+
+    // Check if local player is dead
+    if (!this.myDead) return;
+
+    // Check if all remote players are dead
+    for (const p of this.remotePlayers.values()) {
+      if (!p.isDead) return; // Rival still flying!
+    }
+
+    // All players dead! Complete match
+    this.currentRoom.state = 'FINISHED';
+
+    const myName = localStorage.getItem('flappy_player_name') || 'You';
+    const rankings = [
+      {
+        id: this.myId,
+        name: myName,
+        score: this.myFinalScore || 0,
+        isMe: true,
+        isHost: this.currentRoom.isHost
+      },
+      ...Array.from(this.remotePlayers.values()).map(p => ({
+        id: p.id,
+        name: p.name || 'Player',
+        score: p.score || 0,
+        isMe: false,
+        isHost: p.isHost
+      }))
+    ];
+
+    rankings.sort((a, b) => b.score - a.score);
+
+    if (this.onMatchFinished) {
+      this.onMatchFinished({
+        rankings,
+        isHost: this.currentRoom.isHost,
+        roomCode: this.currentRoom.code
+      });
+    }
+  }
+
   requestStartGame() {
     return new Promise((resolve, reject) => {
       if (!this.currentRoom) return reject(new Error('Not in a room'));
@@ -574,6 +648,13 @@ export class NetworkManager {
       const seed = Math.floor(Math.random() * 900000) + 100000;
       this.currentRoom.seed = seed;
       this.currentRoom.state = 'PLAYING';
+
+      this.myDead = false;
+      this.myFinalScore = 0;
+      for (const p of this.remotePlayers.values()) {
+        p.isDead = false;
+        p.score = 0;
+      }
 
       // 1. Socket.io mode
       if (this.mode === 'SOCKET' && this.socket && this.socket.connected) {
@@ -664,6 +745,12 @@ export class NetworkManager {
 
   sendAction(actionType, extraData = {}) {
     if (!this.currentRoom) return;
+
+    if (actionType === 'die') {
+      this.myDead = true;
+      this.myFinalScore = typeof extraData.score === 'number' ? extraData.score : 0;
+      setTimeout(() => this.checkMatchFinished(), 60);
+    }
 
     if (this.mode === 'SOCKET' && this.socket && this.socket.connected) {
       this.socket.emit('player_action', { action: actionType, ...extraData });

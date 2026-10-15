@@ -7,10 +7,16 @@
 class AudioController {
   constructor() {
     this.ctx = null;
-    this.muted = false;
+    this.muted = localStorage.getItem('flappy_audio_muted') === 'true';
     this.unlocked = false;
 
     this.setupUnlockListeners();
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    localStorage.setItem('flappy_audio_muted', this.muted ? 'true' : 'false');
+    return this.muted;
   }
 
   setupUnlockListeners() {
@@ -242,6 +248,80 @@ class AudioController {
 
         osc.start(startTime);
         osc.stop(startTime + noteDuration + 0.1);
+      });
+    } catch {
+      // Audio playback failsafe
+    }
+  }
+
+  /**
+   * Cheerful high-energy achievement fanfare chime
+   */
+  playAchievement() {
+    this.init();
+    if (!this.ctx || this.muted) return;
+
+    try {
+      const notes = [587.33, 659.25, 783.99, 880.00, 1046.50]; // D5, E5, G5, A5, C6
+      const noteDuration = 0.08;
+      const now = this.ctx.currentTime;
+
+      notes.forEach((freq, index) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const startTime = now + (index * noteDuration);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.24, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + noteDuration + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + noteDuration + 0.12);
+      });
+    } catch {
+      // Audio playback failsafe
+    }
+  }
+
+  /**
+   * Multiplayer victory podium chime
+   */
+  playVictory() {
+    this.init();
+    if (!this.ctx || this.muted) return;
+
+    try {
+      const chords = [
+        { freqs: [523.25, 659.25, 783.99], time: 0.0, dur: 0.18 }, // C major
+        { freqs: [587.33, 698.46, 880.00], time: 0.18, dur: 0.18 }, // D minor
+        { freqs: [659.25, 783.99, 1046.50], time: 0.36, dur: 0.38 } // E-G-C triumph
+      ];
+
+      const now = this.ctx.currentTime;
+
+      chords.forEach(chord => {
+        chord.freqs.forEach(freq => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const startTime = now + chord.time;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0.2, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + chord.dur);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + chord.dur);
+        });
       });
     } catch {
       // Audio playback failsafe

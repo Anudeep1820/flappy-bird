@@ -1,0 +1,18 @@
+{
+  "name": "Flappy Bird Arcade",
+  "short_name": "Flappy Bird",
+  "description": "Retro Arcade Flappy Bird with Live Multiplayer, Superpowers, and Custom Skins",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0d1017">
   <title>Flappy Bird Arcade</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,7 +25,13 @@
         🌐 MULTI
       </button>
       <button id="leaderboard-btn-top" class="top-pill-btn" aria-label="Global Leaderboard">
-        🏆 RANKINGS
+        🏆 RANK
+      </button>
+      <button id="achievements-btn-top" class="top-pill-btn ach-pill" aria-label="Trophy Room">
+        🎖️
+      </button>
+      <button id="mute-btn-top" class="top-pill-btn audio-pill" aria-label="Toggle Sound">
+        🔊
       </button>
       <div id="coin-counter-top" class="coin-pill-badge" title="Total Coins Collected">
         <span class="coin-icon">🪙</span>
@@ -102,11 +109,15 @@
       <!-- Action Buttons -->
       <div class="gameover-actions">
         <button id="restart-btn" class="arcade-btn primary-action">PLAY AGAIN</button>
-        <button id="open-submit-modal-btn" class="arcade-btn sub-btn">✍️ POST SCORE</button>
+        <div class="main-action-duo">
+          <button id="open-submit-modal-btn" class="arcade-btn sub-btn">✍️ POST SCORE</button>
+          <button id="share-score-btn" class="arcade-btn share-btn">📤 SHARE SCORE</button>
+        </div>
         <div class="sub-btn-row">
           <button id="skins-btn-over" class="arcade-btn sub-btn">🎨 SKINS</button>
           <button id="mp-btn-over" class="arcade-btn sub-btn">🌐 MULTI</button>
           <button id="leaderboard-btn-over" class="arcade-btn sub-btn">🏆 RANK</button>
+          <button id="achievements-btn-over" class="arcade-btn sub-btn">🎖️ TROPHIES</button>
         </div>
       </div>
       <div class="restart-hint">Tap anywhere to restart</div>
@@ -305,6 +316,41 @@
             <div id="mp-waiting-hint" class="mp-waiting-hint hidden">Waiting for host to launch...</div>
             <button id="mp-leave-room-btn" class="chip-btn danger-chip" style="margin-top: 10px;">Leave Room</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI Overlay: Floating Achievement Unlock Toast Banner -->
+    <div id="achievement-toast" class="achievement-toast hidden"></div>
+
+    <!-- UI Overlay: Trophy Room / Achievements Modal -->
+    <div id="achievements-modal" class="modal-overlay hidden">
+      <div class="achievements-modal-content">
+        <div class="modal-header">
+          <span>🎖️ TROPHY ROOM</span>
+          <button id="achievements-close-btn" class="close-x">&times;</button>
+        </div>
+        <div id="achievements-list-container" class="achievements-list-container">
+          <!-- Dynamically populated via achievements.renderList() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- UI Overlay: Multiplayer Match Results & Winner Podium Modal -->
+    <div id="mp-podium-modal" class="modal-overlay hidden">
+      <div class="podium-modal-content">
+        <div class="podium-header">
+          <span class="podium-title">🏆 MATCH PODIUM</span>
+          <button id="mp-podium-close-btn" class="close-x">&times;</button>
+        </div>
+        <div class="podium-subtitle">All flyers have landed! Final standings:</div>
+        <div id="podium-cards-container" class="podium-cards-container">
+          <!-- Dynamically populated 1st, 2nd, 3rd, etc. -->
+        </div>
+        <div class="podium-actions">
+          <button id="mp-rematch-btn" class="arcade-btn primary-action">🔄 REMATCH</button>
+          <div id="mp-podium-waiting-hint" class="mp-waiting-hint hidden">Waiting for host to trigger rematch...</div>
+          <button id="mp-podium-leave-btn" class="chip-btn danger-chip" style="margin-top: 10px;">Leave Room</button>
         </div>
       </div>
     </div>

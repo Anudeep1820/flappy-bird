@@ -13,6 +13,7 @@ import { SkinsManager } from './skins.js';
 import { CoinManager, createMulberry32 } from './coins.js';
 import { PowerManager } from './powers.js';
 import { NetworkManager } from './network.js';
+import { achievements } from './achievements.js';
 
 class Game {
   constructor() {
@@ -26,6 +27,11 @@ class Game {
 
     this.setupDPI();
 
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
     // DOM UI Elements
     this.startOverlay = document.getElementById('start-overlay');
     this.gameoverOverlay = document.getElementById('gameover-overlay');
@@ -35,6 +41,24 @@ class Game {
     this.highScoreEl = document.getElementById('high-score');
     this.medalIcon = document.getElementById('medal-icon');
     this.restartBtn = document.getElementById('restart-btn');
+
+    // Audio & Achievements Controls
+    this.muteBtnTop = document.getElementById('mute-btn-top');
+    this.achievementsBtnTop = document.getElementById('achievements-btn-top');
+    this.achievementsBtnOver = document.getElementById('achievements-btn-over');
+    this.shareScoreBtn = document.getElementById('share-score-btn');
+    this.achievementsModal = document.getElementById('achievements-modal');
+    this.achievementsCloseBtn = document.getElementById('achievements-close-btn');
+    this.achievementsListContainer = document.getElementById('achievements-list-container');
+    achievements.setToastElement(document.getElementById('achievement-toast'));
+
+    // Multiplayer Podium UI
+    this.mpPodiumModal = document.getElementById('mp-podium-modal');
+    this.mpPodiumCloseBtn = document.getElementById('mp-podium-close-btn');
+    this.podiumCardsContainer = document.getElementById('podium-cards-container');
+    this.mpRematchBtn = document.getElementById('mp-rematch-btn');
+    this.mpPodiumLeaveBtn = document.getElementById('mp-podium-leave-btn');
+    this.mpPodiumWaitingHint = document.getElementById('mp-podium-waiting-hint');
 
     // Leaderboard & Submit UI
     this.leaderboardBtnTop = document.getElementById('leaderboard-btn-top');
@@ -106,10 +130,13 @@ class Game {
     this.pipes = new PipeManager(this.width, this.height, this.groundHeight);
 
     // Coins System
+    this.runPowersUsed = new Set();
     this.coinManager = new CoinManager(this.width, this.height);
     this.coinManager.setCallbacks({
       onCoinPickup: (runCoins, totalCoins) => {
         this.updateCoinDisplay(totalCoins);
+        if (runCoins >= 10) achievements.unlock('coin_hoarder');
+        if (totalCoins >= 50) achievements.unlock('wealthy_bird');
       },
       spawnParticleCb: (x, y) => {
         this.spawnScoreBurst(x, y);
@@ -121,10 +148,39 @@ class Game {
     this.powers = new PowerManager();
     this.powers.setCoinManager(this.coinManager);
     this.powers.setChangeCallback((summary) => {
+      if (summary) {
+        if (summary.shield) {
+          this.runPowersUsed.add('shield');
+          achievements.unlock('power_shield');
+        }
+        if (summary.magnet) {
+          this.runPowersUsed.add('magnet');
+          achievements.unlock('power_magnet');
+        }
+        if (summary.multiplier) {
+          this.runPowersUsed.add('multiplier');
+        }
+        if (this.runPowersUsed.size >= 3) {
+          achievements.unlock('power_trio');
+        }
+      }
       if (this.network && this.network.currentRoom) {
         this.network.sendAction('power_change', summary);
       }
     });
+
+    // Ambient Night Stars
+    this.stars = [];
+    for (let i = 0; i < 35; i++) {
+      this.stars.push({
+        x: Math.random() * this.width,
+        y: Math.random() * (this.height - this.groundHeight - 40),
+        size: Math.random() * 1.8 + 0.8,
+        speed: Math.random() * 0.04 + 0.02,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+    this.updateMuteButtonUI();
 
     // Pipe Spawning Hook: Centered Gold Coin Spawning
     this.pipes.setOnSpawnPair((x, gapCenter, pipeWidth) => {
@@ -193,6 +249,8 @@ class Game {
         if (this.state === 'PAUSED_SUBMIT') this.closeSubmitModal();
         if (this.state === 'PAUSED_SKINS') this.skinsManager.close();
         if (this.state === 'PAUSED_MP') this.closeMultiplayerModal();
+        if (this.state === 'PAUSED_ACHIEVEMENTS') this.closeAchievementsModal();
+        this.closePodiumModal();
         return;
       }
 
@@ -313,7 +371,65 @@ class Game {
       });
     }
 
-    // 8. Responsive Resize & Orientation Change
+    // 8. Audio Toggle
+    if (this.muteBtnTop) {
+      this.muteBtnTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.toggleMute();
+        this.updateMuteButtonUI();
+      });
+    }
+
+    // 9. Achievements & Trophy Room
+    if (this.achievementsBtnTop) {
+      this.achievementsBtnTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openAchievementsModal();
+      });
+    }
+    if (this.achievementsBtnOver) {
+      this.achievementsBtnOver.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openAchievementsModal();
+      });
+    }
+    if (this.achievementsCloseBtn) {
+      this.achievementsCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeAchievementsModal();
+      });
+    }
+
+    // 10. Share Score & Challenge
+    if (this.shareScoreBtn) {
+      this.shareScoreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.shareScore();
+      });
+    }
+
+    // 11. Multiplayer Podium & Rematch
+    if (this.mpRematchBtn) {
+      this.mpRematchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.triggerRematch();
+      });
+    }
+    if (this.mpPodiumLeaveBtn) {
+      this.mpPodiumLeaveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.network.leaveRoom();
+        this.closePodiumModal();
+      });
+    }
+    if (this.mpPodiumCloseBtn) {
+      this.mpPodiumCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closePodiumModal();
+      });
+    }
+
+    // 12. Responsive Resize & Orientation Change
     const handleResize = () => {
       this.setupDPI();
     };
@@ -337,6 +453,7 @@ class Game {
       this.startGame();
       this.bird.flap();
       sound.playFlap();
+      achievements.unlock('first_flight');
       this.spawnFeathers(this.bird.x, this.bird.y);
       if (this.network && this.network.currentRoom) {
         this.network.sendAction('flap', { y: this.bird.y });
@@ -344,6 +461,7 @@ class Game {
     } else if (this.state === 'PLAYING') {
       this.bird.flap();
       sound.playFlap();
+      achievements.unlock('first_flight');
       this.spawnFeathers(this.bird.x, this.bird.y);
       if (this.network && this.network.currentRoom) {
         this.network.sendAction('flap', { y: this.bird.y });
@@ -353,6 +471,8 @@ class Game {
 
   startGame() {
     this.state = 'PLAYING';
+    this.runPowersUsed.clear();
+    this.closePodiumModal();
     if (this.startOverlay) this.startOverlay.classList.add('hidden');
     if (this.topBarOverlay) this.topBarOverlay.style.display = 'none'; // Clean gameplay!
     if (this.hudScore) this.hudScore.textContent = '0';
@@ -516,9 +636,16 @@ class Game {
       this.currentPrng = createMulberry32(seed);
       this.pipes.setPrng(this.currentPrng);
 
+      achievements.unlock('multiplayer_match');
+      this.closePodiumModal();
       this.closeMultiplayerModal();
       this.restartGame();
       this.startGame();
+    };
+
+    // Match Finished / Winner Podium Trigger
+    this.network.onMatchFinished = ({ rankings, isHost, roomCode }) => {
+      this.showMatchPodium({ rankings, isHost });
     };
 
     // Wire Multiplayer UI Buttons
@@ -708,6 +835,126 @@ class Game {
     if (this.submitModal) {
       this.submitModal.classList.add('hidden');
     }
+  }
+
+  updateMuteButtonUI() {
+    if (!this.muteBtnTop) return;
+    const isMuted = sound.muted;
+    this.muteBtnTop.textContent = isMuted ? '🔇' : '🔊';
+    this.muteBtnTop.classList.toggle('muted', isMuted);
+    this.muteBtnTop.title = isMuted ? 'Unmute Sound' : 'Mute Sound';
+  }
+
+  openAchievementsModal() {
+    this.previousState = this.state;
+    this.state = 'PAUSED_ACHIEVEMENTS';
+    if (this.achievementsListContainer) {
+      achievements.renderList(this.achievementsListContainer);
+    }
+    if (this.achievementsModal) {
+      this.achievementsModal.classList.remove('hidden');
+    }
+  }
+
+  closeAchievementsModal() {
+    this.state = this.previousState;
+    if (this.achievementsModal) {
+      this.achievementsModal.classList.add('hidden');
+    }
+  }
+
+  async shareScore() {
+    const url = window.location.origin || 'https://flappy-bird-six-henna.vercel.app';
+    const text = `🐦 I just scored ${this.score} points in Flappy Bird Arcade! Can you beat my high score? Play here:`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Flappy Bird Arcade',
+          text,
+          url
+        });
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      if (this.shareScoreBtn) {
+        const originalText = this.shareScoreBtn.textContent;
+        this.shareScoreBtn.textContent = '✅ COPIED LINK!';
+        this.shareScoreBtn.style.background = '#16a34a';
+        setTimeout(() => {
+          this.shareScoreBtn.textContent = originalText;
+          this.shareScoreBtn.style.background = '';
+        }, 2200);
+      }
+    } catch {
+      alert(`Score: ${this.score}! Share link: ${url}`);
+    }
+  }
+
+  showMatchPodium({ rankings, isHost }) {
+    if (!this.podiumCardsContainer) return;
+
+    sound.playVictory();
+
+    this.podiumCardsContainer.innerHTML = rankings.map((p, index) => {
+      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎖️';
+      const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+      return `
+        <div class="podium-row ${rankClass}">
+          <div class="podium-left">
+            <span class="podium-medal">${medal}</span>
+            <span class="podium-name">${p.isMe ? '⭐ ' : ''}${this.escapeHtml(p.name || 'Player')}</span>
+          </div>
+          <span class="podium-score">${p.score} PTS</span>
+        </div>
+      `;
+    }).join('');
+
+    if (this.mpRematchBtn) {
+      this.mpRematchBtn.classList.toggle('hidden', !isHost);
+    }
+    if (this.mpPodiumWaitingHint) {
+      this.mpPodiumWaitingHint.classList.toggle('hidden', isHost);
+    }
+
+    if (this.mpPodiumModal) {
+      this.mpPodiumModal.classList.remove('hidden');
+    }
+
+    // Achievements check
+    achievements.unlock('multiplayer_match');
+    if (rankings[0] && rankings[0].isMe) {
+      achievements.unlock('multiplayer_win');
+    }
+  }
+
+  closePodiumModal() {
+    if (this.mpPodiumModal) {
+      this.mpPodiumModal.classList.add('hidden');
+    }
+  }
+
+  async triggerRematch() {
+    try {
+      this.closePodiumModal();
+      await this.network.requestStartGame();
+    } catch (err) {
+      console.warn('Rematch failed:', err);
+    }
+  }
+
+  checkScoreAchievements() {
+    if (this.score >= 10) achievements.unlock('score_10');
+    if (this.score >= 15) achievements.unlock('sunset_flyer');
+    if (this.score >= 25) achievements.unlock('score_25');
+    if (this.score >= 30) achievements.unlock('night_flyer');
+    if (this.score >= 50) achievements.unlock('score_50');
+    if (this.score >= 100) achievements.unlock('score_100');
   }
 
   async openLeaderboard() {
@@ -949,6 +1196,7 @@ class Game {
         if (this.hudScore) this.hudScore.textContent = this.score;
         sound.playScore();
         this.spawnScoreBurst(this.bird.x + 20, this.bird.y);
+        this.checkScoreAchievements();
       });
 
       // Collision Check with shield invulnerability
@@ -1013,12 +1261,63 @@ class Game {
       this.ctx.translate(offsetX, offsetY);
     }
 
-    // 1. Sky Gradient
-    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.height - this.groundHeight);
-    skyGrad.addColorStop(0, '#4ec0ca');
-    skyGrad.addColorStop(1, '#a1e4e6');
-    this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    // 1. Sky Gradient & Dynamic Themes (Day / Sunset / Midnight Stargazer)
+    const theme = this.getTheme();
+    const skyHeight = this.height - this.groundHeight;
+
+    if (theme === 'day') {
+      const skyGrad = this.ctx.createLinearGradient(0, 0, 0, skyHeight);
+      skyGrad.addColorStop(0, '#4ec0ca');
+      skyGrad.addColorStop(1, '#a1e4e6');
+      this.ctx.fillStyle = skyGrad;
+      this.ctx.fillRect(0, 0, this.width, this.height);
+    } else if (theme === 'sunset') {
+      const skyGrad = this.ctx.createLinearGradient(0, 0, 0, skyHeight);
+      skyGrad.addColorStop(0, '#f97316');
+      skyGrad.addColorStop(0.5, '#ec4899');
+      skyGrad.addColorStop(1, '#6366f1');
+      this.ctx.fillStyle = skyGrad;
+      this.ctx.fillRect(0, 0, this.width, this.height);
+
+      // Sunset sun glow
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.arc(this.width * 0.74, skyHeight - 65, 34, 0, Math.PI * 2);
+      this.ctx.fillStyle = 'rgba(254, 240, 138, 0.88)';
+      this.ctx.shadowColor = '#f59e0b';
+      this.ctx.shadowBlur = 24;
+      this.ctx.fill();
+      this.ctx.restore();
+    } else {
+      // Midnight Stargazer
+      const skyGrad = this.ctx.createLinearGradient(0, 0, 0, skyHeight);
+      skyGrad.addColorStop(0, '#090d16');
+      skyGrad.addColorStop(0.55, '#0f172a');
+      skyGrad.addColorStop(1, '#1e1b4b');
+      this.ctx.fillStyle = skyGrad;
+      this.ctx.fillRect(0, 0, this.width, this.height);
+
+      // Stars
+      this.drawStars();
+
+      // Glowing crescent moon
+      this.ctx.save();
+      const moonX = this.width * 0.8;
+      const moonY = 80;
+      this.ctx.beginPath();
+      this.ctx.arc(moonX, moonY, 20, 0, Math.PI * 2);
+      this.ctx.fillStyle = '#fef08a';
+      this.ctx.shadowColor = '#fef08a';
+      this.ctx.shadowBlur = 18;
+      this.ctx.fill();
+
+      this.ctx.beginPath();
+      this.ctx.arc(moonX - 7, moonY - 5, 17, 0, Math.PI * 2);
+      this.ctx.fillStyle = '#090d16';
+      this.ctx.shadowBlur = 0;
+      this.ctx.fill();
+      this.ctx.restore();
+    }
 
     // 2. Parallax Clouds Layer
     this.drawClouds();
@@ -1049,8 +1348,28 @@ class Game {
     this.ctx.restore();
   }
 
+  getTheme() {
+    if (this.score >= 30) return 'night';
+    if (this.score >= 15) return 'sunset';
+    return 'day';
+  }
+
+  drawStars() {
+    const now = performance.now();
+    this.ctx.fillStyle = '#ffffff';
+    for (const s of this.stars) {
+      const alpha = 0.4 + Math.sin(now * s.speed + s.phase) * 0.4;
+      this.ctx.globalAlpha = Math.max(0.1, Math.min(1, alpha));
+      this.ctx.fillRect(s.x, s.y, s.size, s.size);
+    }
+    this.ctx.globalAlpha = 1.0;
+  }
+
   drawClouds() {
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    const theme = this.getTheme();
+    this.ctx.fillStyle = theme === 'day'
+      ? 'rgba(255, 255, 255, 0.7)'
+      : (theme === 'sunset' ? 'rgba(254, 215, 170, 0.6)' : 'rgba(148, 163, 184, 0.22)');
     const baseY = 240;
 
     for (let i = -1; i < 3; i++) {
@@ -1064,8 +1383,12 @@ class Game {
   }
 
   drawSkyline() {
+    const theme = this.getTheme();
     const baseY = this.height - this.groundHeight;
-    this.ctx.fillStyle = '#83cfb8';
+    const bodyColor = theme === 'day' ? '#83cfb8' : (theme === 'sunset' ? '#3b0764' : '#0b0f19');
+    const winColor = theme === 'day' ? '#b7edd8' : (theme === 'sunset' ? '#fde047' : '#38bdf8');
+
+    this.ctx.fillStyle = bodyColor;
 
     for (let i = -1; i < 3; i++) {
       const startX = i * 240 - this.cityOffset;
@@ -1075,12 +1398,12 @@ class Game {
       this.ctx.fillRect(startX + 156, baseY - 70, 36, 70);
       this.ctx.fillRect(startX + 198, baseY - 50, 32, 50);
 
-      this.ctx.fillStyle = '#b7edd8';
+      this.ctx.fillStyle = winColor;
       this.ctx.fillRect(startX + 65, baseY - 75, 6, 8);
       this.ctx.fillRect(startX + 77, baseY - 75, 6, 8);
       this.ctx.fillRect(startX + 65, baseY - 60, 6, 8);
       this.ctx.fillRect(startX + 77, baseY - 60, 6, 8);
-      this.ctx.fillStyle = '#83cfb8';
+      this.ctx.fillStyle = bodyColor;
     }
   }
 
