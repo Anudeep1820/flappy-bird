@@ -55,6 +55,18 @@
   ],
   "sessions": [
     {
+      "sessionId": "sess_1792185038037_x1lh4k",
+      "playerName": "Guest",
+      "device": "Linux Desktop",
+      "browser": "Chrome",
+      "resolution": "1600x1200",
+      "isMobile": false,
+      "firstSeen": "2026-10-16T21:10:39.159Z",
+      "lastSeen": "2026-10-16T21:10:39.159Z",
+      "gamesPlayed": 1,
+      "highestScore": 0
+    },
+    {
       "sessionId": "sess_1792085770394_bncr2o",
       "playerName": "Guest",
       "device": "Android Mobile",
